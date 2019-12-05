@@ -1,0 +1,28 @@
+* {
+  font-family: "Open Sans";
+}
+
+.container {
+  display: grid;
+  grid-gap: none;
+  grid-template-columns: repeat(5, auto);
+  grid-template-rows: repeat(5, auto);
+  grid-auto-flow: row;
+  width: fit-content;
+}
+
+img {
+  image-rendering: pixelated;
+}
+
+.grid-item {
+  color: #fff;
+  background-color: black;
+  width: 64px;
+  height: 64px;
+  background-size: cover;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+/*# sourceMappingURL=index.css.map */

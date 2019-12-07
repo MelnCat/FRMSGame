@@ -5,6 +5,7 @@ $grid-size: 5;
 }
 
 .container {
+	margin: 0 auto;
 	display: grid;
 	grid-gap: none;
 	grid-template-columns: repeat($grid-size, auto);
@@ -13,11 +14,30 @@ $grid-size: 5;
 	width: fit-content;
 }
 
+.flipX {
+	transform: scaleX(-1);
+}
+
+.flipY {
+	transform: scaleY(-1);
+}
+
 img {
 	image-rendering: pixelated;
 }
 
+
 .grid-item {
+	img {
+		flex-shrink: 0;
+		min-height: 100%;
+		position: absolute;
+	}
+
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	overflow: hidden;
 	color: #fff;
 	background-color: black;
 	width: 64px;
@@ -25,4 +45,53 @@ img {
 	background-size: cover;
 	background-repeat: no-repeat;
 	image-rendering: pixelated;
+	// border: 1px solid #fff;
+	position: relative;
+}
+
+.player {
+	z-index: 10;
+}
+
+.fg {
+	z-index: 9;
+	position: relative;
+}
+
+.typewriter {
+	overflow: hidden;
+	/* Ensures the content is not revealed until the animation */
+	border-right: 0.15em solid yellow;
+	/* The typwriter cursor */
+	white-space: nowrap;
+	/* Keeps the content on a single line */
+	margin: 0 auto;
+	/* Gives that scrolling effect as the typing happens */
+	letter-spacing: 0.15em;
+	/* Adjust as needed */
+	animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+}
+
+/* The typing effect */
+@keyframes typing {
+	from {
+		width: 0;
+	}
+
+	to {
+		width: 100%;
+	}
+}
+
+/* The typewriter cursor effect */
+@keyframes blink-caret {
+
+	from,
+	to {
+		border-color: transparent;
+	}
+
+	50% {
+		border-color: yellow;
+	}
 }

@@ -196,13 +196,73 @@
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 1);
+/******/ 	return __webpack_require__(__webpack_require__.s = 2);
 /******/ })
 /************************************************************************/
 /******/ ([
 /* 0 */,
 /* 1 */
 /***/ (function(module, exports, __webpack_require__) {
+
+var map = {
+	"./test_area": [
+		0,
+		9,
+		0
+	],
+	"./test_area.js": [
+		3,
+		7,
+		2
+	],
+	"./test_area.ts": [
+		0,
+		9,
+		0
+	]
+};
+function webpackAsyncContext(req) {
+	if(!__webpack_require__.o(map, req)) {
+		return Promise.resolve().then(function() {
+			var e = new Error("Cannot find module '" + req + "'");
+			e.code = 'MODULE_NOT_FOUND';
+			throw e;
+		});
+	}
+
+	var ids = map[req], id = ids[0];
+	return __webpack_require__.e(ids[2]).then(function() {
+		return __webpack_require__.t(id, ids[1])
+	});
+}
+webpackAsyncContext.keys = function webpackAsyncContextKeys() {
+	return Object.keys(map);
+};
+webpackAsyncContext.id = 1;
+module.exports = webpackAsyncContext;
+
+/***/ }),
+/* 2 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+
+// CONCATENATED MODULE: ./src/public/modules/defaults.ts
+const wall = (...arr) => arr.reduce((p, c) => { p[c] = { wall: true }; return p; }, {});
+console.log(wall(1, 2, 3));
+const defaults = {
+    bg: {
+        ...wall(0)
+    },
+    fg: {
+        ...wall(2, 3, 4, 5)
+    }
+};
+;
+
+// CONCATENATED MODULE: ./src/public/index.ts
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Util", function() { return Util; });
 
 // #region CLASSES
 const gridSize = 5;
@@ -225,11 +285,10 @@ class Plane {
     }
     get(x, y) {
         var _a, _b;
-        return ((_b = (_a = this.indexNoFlat) === null || _a === void 0 ? void 0 : _a[x]) === null || _b === void 0 ? void 0 : _b[y]) || null;
+        return ((_b = (_a = this.indexNoFlat) === null || _a === void 0 ? void 0 : _a[y]) === null || _b === void 0 ? void 0 : _b[x]) || null;
     }
     set(x, y, newVal) {
-        this.arr[x][y] = newVal;
-        return newVal;
+        return this.arr[y][x] = newVal;
     }
     getSurrounding(x, y) {
         const center = this.get(x, y);
@@ -244,12 +303,7 @@ class Plane {
         };
     }
     getArea(startX, startY, endX, endY) {
-        return Array.from(this.indexNoFlat.entries())
-            .filter(([i, v]) => i >= startY && i <= endY)
-            .map(x => x[1])
-            .map(x => Array.from(x.entries())
-            .filter(([i, v]) => i >= startX && i <= endX)
-            .map(y => y[1]));
+        return this.indexNoFlat.slice(Math.max(0, startY), endY + 1).map(x => x.slice(Math.max(0, startX), endX + 1));
     }
     findValue(val) {
         return this.indexFlat.find(x => x.value === val);
@@ -264,12 +318,19 @@ class Plane {
         var _a;
         return (_a = this.arr[Math.floor(this.width / 2)]) === null || _a === void 0 ? void 0 : _a[Math.floor(this.height / 2)];
     }
+    *[Symbol.iterator]() {
+        for (const x of this.indexFlat)
+            yield x;
+    }
 }
+const areaCache = {};
 const player = {
-    x: 0,
-    y: 0,
-    area: ""
+    x: 3,
+    y: 3,
+    area: "",
+    texId: 1
 };
+// #endregion
 const isString = (val) => typeof val === "string";
 const isNumber = (val) => typeof val === "number";
 const tileParser = (arr) => // [number: bg, number: fg, opts]
@@ -277,26 +338,58 @@ const tileParser = (arr) => // [number: bg, number: fg, opts]
     if (isNumber(y))
         y = [y];
     const [background = 0, foreground = 0, options = {}] = y;
-    return [new Tile(background), new Tile(foreground, options)];
+    return [new Tile(background, defaults.bg[background]), new Tile(foreground, Object.assign({}, defaults.fg[foreground], options))];
 }));
 const areaFileParser = (text) => text.split("\n").map(x => x.split(/\s+/).map(y => y.split(/:\s+/).map(z => Number.parseInt(z, 16))));
 const importArea = async (name) => {
-    const areaRaw = await __webpack_require__(2)(`./${name}`);
-    const area = areaRaw.area;
+    if (areaCache[name])
+        return areaCache[name];
+    const areaRaw = await __webpack_require__(1)(`./${name}`);
+    const empty = Array(areaRaw.area[0].length + 4).fill(0);
+    const area = [empty, empty, ...areaRaw.area.map((x) => [0, 0, ...x, 0, 0]), empty, empty];
     const file = tileParser(area);
     const plane = new Plane(file);
+    areaCache[name] = plane;
     return plane;
 };
-const getGridElement = (x, y) => document.getElementById(`grid-${(y * gridSize) + x}`);
-const loadArea = async () => {
+const toN = (x, y) => (x * gridSize) + y;
+const getGridElement = (x, y) => document.getElementById(`grid-${toN(x, y)}`);
+const getForegroundElement = (x, y) => document.getElementById(`grid-${toN(x, y)}-fg`);
+const getPlayerElement = (x, y) => document.getElementById(`grid-${toN(x, y)}-player`);
+const getSurrounding = async () => {
     const plane = await importArea(player.area);
+    const area = plane.getArea(player.x - 2, player.y - 2, player.x + 2, player.y + 2);
+    return [new Plane(area.map(k => k.map(z => z.value))).indexFlat, area];
+};
+const getDirect = async () => {
+    const plane = await importArea(player.area);
+    return plane.getSurrounding(player.x, player.y);
+};
+const loadArea = async () => {
     const { x, y } = player;
-    const surrounding = plane.getArea(player.x - 2, player.y - 3, player.x + 2, player.y + 2);
-    for (const e of surrounding.flat()) {
+    const [surrounding, area] = await getSurrounding();
+    for (const e of surrounding) {
         const elem = getGridElement(e.x, e.y);
-        if (!elem)
+        const fg = getForegroundElement(e.x, e.y);
+        const plyr = getPlayerElement(e.x, e.y);
+        elem.classList.remove("flipX");
+        elem.classList.remove("flipY");
+        fg.classList.remove("flipX");
+        fg.classList.remove("flipY");
+        const bgOpts = e.value[0].options;
+        const fgOpts = e.value[1].options;
+        if (!elem || !fg || !plyr)
             console.error(e.x, e.y);
+        if (bgOpts.flip)
+            elem.classList.add(`flip${bgOpts.flip}`);
         elem.style.backgroundImage = `url(./img/background/${e.value[0].texture}.png)`;
+        if (fgOpts.flip)
+            fg.classList.add(`flip${fgOpts.flip}`);
+        fg.src = `./img/foreground/${e.value[1].texture}.png`;
+        if (e.x === (Math.round(gridSize / 2) - 1) && e.y === (Math.round(gridSize / 2) - 1))
+            plyr.src = `./img/player/${player.texId}.png`;
+        else
+            plyr.src = "";
     }
 };
 const startArea = async (starting = 0) => {
@@ -304,8 +397,8 @@ const startArea = async (starting = 0) => {
     const center = plane.indexFlat.find(x => x.value.some(y => y.options.start === starting));
     if (!center)
         throw new Error(`Area "${name}" does not have a start.`);
-    player.x = center.x;
-    player.y = center.y;
+    player.x = center.y;
+    player.y = center.x;
 };
 const setArea = async (area) => {
     player.area = area;
@@ -344,56 +437,85 @@ window.onload = async () => {
         ctn.append(elem);
         elem.classList.add("grid-item");
         elem.id = `grid-${i}`;
-        elem.innerHTML = "<p>yeet</p>";
+        const foreground = document.createElement("IMG");
+        foreground.id = `grid-${i}-fg`;
+        foreground.classList.add("fg");
+        elem.append(foreground);
+        const playerelem = document.createElement("IMG");
+        playerelem.id = `grid-${i}-player`;
+        playerelem.classList.add("player");
+        elem.append(playerelem);
     }
     // > Tile init
     // #endregion
     await setArea("test_area");
     await startArea();
     await loadArea();
+    const check = async (look) => {
+        const area = await importArea(player.area);
+        const surr = await getDirect();
+        if (!surr || !surr[look])
+            return false;
+        const { [look]: { value: [{ options: bgOptions }, { options: fgOptions }] } } = surr;
+        if (bgOptions.wall || fgOptions.wall)
+            return false;
+        return true;
+    };
+    const right = async () => {
+        if (!await check("right"))
+            return;
+        player.x++;
+        await loadArea();
+    };
+    const left = async () => {
+        if (!await check("left"))
+            return;
+        player.x--;
+        await loadArea();
+    };
+    const down = async () => {
+        if (!await check("down"))
+            return;
+        player.y++;
+        await loadArea();
+    };
+    const up = async () => {
+        if (!await check("up"))
+            return;
+        player.y--;
+        await loadArea();
+    };
+    let movable = true;
+    window.addEventListener("keydown", async (event) => {
+        if (!movable)
+            return;
+        movable = false;
+        switch (event.code) {
+            case "ArrowLeft":
+            case "KeyA":
+                await left();
+                break;
+            case "ArrowRight":
+            case "KeyD":
+                await right();
+                break;
+            case "ArrowUp":
+            case "KeyW":
+                await up();
+                break;
+            case "ArrowDown":
+            case "KeyS":
+                await down();
+                break;
+        }
+        setTimeout(() => movable = true, 50);
+    }, true);
 };
+var Util;
+(function (Util) {
+    Util.say = (text) => alert(text);
+})(Util || (Util = {}));
 
-
-/***/ }),
-/* 2 */
-/***/ (function(module, exports, __webpack_require__) {
-
-var map = {
-	"./test_area": [
-		0,
-		9,
-		0
-	],
-	"./test_area.js": [
-		3,
-		7,
-		2
-	],
-	"./test_area.ts": [
-		0,
-		9,
-		0
-	]
-};
-function webpackAsyncContext(req) {
-	if(!__webpack_require__.o(map, req)) {
-		return Promise.resolve().then(function() {
-			var e = new Error("Cannot find module '" + req + "'");
-			e.code = 'MODULE_NOT_FOUND';
-			throw e;
-		});
-	}
-
-	var ids = map[req], id = ids[0];
-	return __webpack_require__.e(ids[2]).then(function() {
-		return __webpack_require__.t(id, ids[1])
-	});
-}
-webpackAsyncContext.keys = function webpackAsyncContextKeys() {
-	return Object.keys(map);
-};
-webpackAsyncContext.id = 2;
-module.exports = webpackAsyncContext;
 
 /***/ })
 /******/ ]);

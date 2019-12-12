@@ -1,4 +1,5 @@
 $grid-size: 5;
+$cell-size: 84px;
 
 * {
 	font-family: "Open Sans";
@@ -6,12 +7,19 @@ $grid-size: 5;
 
 .container {
 	margin: 0 auto;
+	/*
 	display: grid;
 	grid-gap: none;
 	grid-template-columns: repeat($grid-size, auto);
 	grid-template-rows: repeat($grid-size, auto);
 	grid-auto-flow: row;
-	width: fit-content;
+	*/
+
+	display: flex;
+	position: relative;
+	// flex-wrap: wrap;
+	width: $grid-size * $cell-size;
+	flex-flow: row wrap;
 }
 
 .flipX {
@@ -40,8 +48,9 @@ img {
 	overflow: hidden;
 	color: #fff;
 	background-color: black;
-	width: 64px;
-	height: 64px;
+	width: $cell-size;
+	height: $cell-size;
+	flex: 0 1 20%;
 	background-size: cover;
 	background-repeat: no-repeat;
 	image-rendering: pixelated;
@@ -60,38 +69,17 @@ img {
 
 .typewriter {
 	overflow: hidden;
-	/* Ensures the content is not revealed until the animation */
-	border-right: 0.15em solid yellow;
-	/* The typwriter cursor */
 	white-space: nowrap;
-	/* Keeps the content on a single line */
 	margin: 0 auto;
-	/* Gives that scrolling effect as the typing happens */
 	letter-spacing: 0.15em;
-	/* Adjust as needed */
-	animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+	animation: typing 2.5s steps(40, end), blink-caret 0.75s step-end infinite;
 }
 
-/* The typing effect */
-@keyframes typing {
-	from {
-		width: 0;
+#speechbox {
+	p {
+		padding: 16px;
 	}
 
-	to {
-		width: 100%;
-	}
-}
-
-/* The typewriter cursor effect */
-@keyframes blink-caret {
-
-	from,
-	to {
-		border-color: transparent;
-	}
-
-	50% {
-		border-color: yellow;
-	}
+	height: $cell-size * 2;
+	width: 100%;
 }

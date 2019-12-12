@@ -2,7 +2,50 @@ import * as Swal from "sweetalert2"; // eslint-disable-line
 import JSON5 from "json5";
 import util from "util";
 import { defaults } from "./modules/defaults";
-// #region CLASSES
+// #region TEXT
+let convo = false;
+const untilTrue = (func: Function) => new Promise(res => {
+	const inter = setInterval(async() => await func() && (res(true), clearInterval(inter)));
+});
+const sleep = (milliseconds: number) => () => new Promise(resolve => setTimeout(resolve, milliseconds));
+export const typewrite = async(id: string | HTMLElement, string: string, persist: (() => Promise<any>) | Promise<any>, breakLoop: (() => Promise<any>) | Promise<any> = async() => false) => {
+	const elem = id instanceof HTMLElement ? id : document.getElementById(id);
+	if (!elem) return elem;
+	convo = true;
+	elem.innerText = "";
+	for (const i of string) {
+		if (!await (breakLoop instanceof Promise ? breakLoop : breakLoop())) await sleep(40)();
+		elem.innerHTML += i;
+	};
+	await untilTrue(persist instanceof Promise ? () => persist : persist);
+	elem.innerText = "";
+	convo = false;
+};
+const waitUntil = (...keys: string[]) => new Promise(res => {
+	const ev = (event: KeyboardEvent): any => keys.some(x => x === event.code) && (window.removeEventListener("keypress", ev), res(event.code));
+	window.addEventListener("keypress", ev);
+});
+const onKey = (func: (event?: KeyboardEvent, stop?: Function) => any, ...keys: string[]) => {
+	const l = (event: KeyboardEvent): any => keys.some(x => x === event.code) && func(event, () => window.removeEventListener("keydown", l));
+	window.addEventListener("keydown", l);
+};
+export const say = (elem: HTMLElement | string, text: string) => {
+	let pressed = 0;
+	onKey((e, stop) => { pressed = Date.now() + 100; stop?.(); }, "Space");
+	const getPressed = async() => pressed;
+	let pressed2 = false;
+	let done = false;
+	onKey((e, stop) => pressed <= Date.now() || done ? (pressed2 = true, stop?.()) : "", "Space");
+	const getPressed2 = async() => { done = true; return pressed2; };
+	typewrite(elem, text, getPressed2, getPressed);
+};
+// #endregion
+// #region CLASSES]
+const createElement = <T extends keyof HTMLElementTagNameMap>(type: T, func: (this: HTMLElementTagNameMap[T], elem: HTMLElementTagNameMap[T]) => void | any = () => true): HTMLElementTagNameMap[T] => {
+	const e = document.createElement(type);
+	func.call(e, e);
+	return e;
+};
 const gridSize = 5;
 declare global {
 	export interface TileOptions {
@@ -132,6 +175,7 @@ const loadArea = async(): Promise<void | any> => {
 		if (bgOpts.flip) elem.classList.add(`flip${bgOpts.flip}`);
 		elem!.style.backgroundImage = `url(./img/background/${e.value[0].texture}.png)`;
 		if (fgOpts.flip) fg.classList.add(`flip${fgOpts.flip}`);
+		// // fg.classList.add(`fg.${e.value[1].texture}`);
 		fg!.src = `./img/foreground/${e.value[1].texture}.png`;
 		if (e.x === (Math.round(gridSize / 2) - 1) && e.y === (Math.round(gridSize / 2) - 1)) plyr.src = `./img/player/${player.texId}.png`;
 		else plyr.src = "";
@@ -150,6 +194,7 @@ const setArea = async(area: string) => {
 };
 window.onload = async() => {
 	// #region
+	// const onKey = (func: (event?: KeyboardEvent) => any, ...keys: string[]) => window.addEventListener("keydown", event => keys.some(x => x === event.code) && func(event));
 	const uuidv4 = () => "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
 	  const r = Math.random() * 16 | 0, v = c === "x" ? r : (r & 0x3) | 0x8;
 	  return v.toString(16);
@@ -190,8 +235,14 @@ window.onload = async() => {
 		playerelem.classList.add("player");
 		elem.append(playerelem);
 	}
-	// > Tile init
 	// #endregion
+	const speechbox = document.createElement("div");
+	speechbox.id = "speechbox";
+	ctn.append(speechbox);
+	const box = document.createElement("p");
+	box.id = "box";
+	speechbox.append(box);
+	// > Tile init
 	await setArea("test_area");
 	await startArea();
 	await loadArea();
@@ -225,7 +276,7 @@ window.onload = async() => {
 	};
 	let movable = true;
 	window.addEventListener("keydown", async event => {
-		if (!movable) return;
+		if (!movable || convo) return;
 		movable = false;
 		switch (event.code) {
 			case "ArrowLeft":
@@ -244,10 +295,11 @@ window.onload = async() => {
 			case "KeyS":
 				await down();
 				break;
+			case "Enter":
+			case "Space":
+				// todo: use
+				break;
 		}
 		setTimeout(() => movable = true, 50);
 	}, true);
 };
-export namespace Util {
-	export const say = (text: number) => alert(text);
-}

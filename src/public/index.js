@@ -196,61 +196,20 @@
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 2);
+/******/ 	return __webpack_require__(__webpack_require__.s = 1);
 /******/ })
 /************************************************************************/
 /******/ ([
 /* 0 */,
 /* 1 */
-/***/ (function(module, exports, __webpack_require__) {
-
-var map = {
-	"./test_area": [
-		0,
-		9,
-		0
-	],
-	"./test_area.js": [
-		3,
-		7,
-		2
-	],
-	"./test_area.ts": [
-		0,
-		9,
-		0
-	]
-};
-function webpackAsyncContext(req) {
-	if(!__webpack_require__.o(map, req)) {
-		return Promise.resolve().then(function() {
-			var e = new Error("Cannot find module '" + req + "'");
-			e.code = 'MODULE_NOT_FOUND';
-			throw e;
-		});
-	}
-
-	var ids = map[req], id = ids[0];
-	return __webpack_require__.e(ids[2]).then(function() {
-		return __webpack_require__.t(id, ids[1])
-	});
-}
-webpackAsyncContext.keys = function webpackAsyncContextKeys() {
-	return Object.keys(map);
-};
-webpackAsyncContext.id = 1;
-module.exports = webpackAsyncContext;
-
-/***/ }),
-/* 2 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 
 // CONCATENATED MODULE: ./src/public/modules/defaults.ts
-const wall = (...arr) => arr.reduce((p, c) => { p[c] = { wall: true }; return p; }, {});
-console.log(wall(1, 2, 3));
+const apply = (name, value, ...arr) => arr.reduce((p, c) => { p[c] = { [name]: value }; return p; }, {});
+const wall = (...arr) => apply("wall", true, ...arr);
 const defaults = {
     bg: {
         ...wall(0)
@@ -262,9 +221,56 @@ const defaults = {
 ;
 
 // CONCATENATED MODULE: ./src/public/index.ts
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Util", function() { return Util; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "typewrite", function() { return typewrite; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "say", function() { return say; });
 
-// #region CLASSES
+// #region TEXT
+let convo = false;
+const untilTrue = (func) => new Promise(res => {
+    const inter = setInterval(async () => await func() && (res(true), clearInterval(inter)));
+});
+const sleep = (milliseconds) => () => new Promise(resolve => setTimeout(resolve, milliseconds));
+const typewrite = async (id, string, persist, breakLoop = async () => false) => {
+    const elem = id instanceof HTMLElement ? id : document.getElementById(id);
+    if (!elem)
+        return elem;
+    convo = true;
+    elem.innerText = "";
+    for (const i of string) {
+        if (!await (breakLoop instanceof Promise ? breakLoop : breakLoop()))
+            await sleep(40)();
+        elem.innerHTML += i;
+    }
+    ;
+    await untilTrue(persist instanceof Promise ? () => persist : persist);
+    elem.innerText = "";
+    convo = false;
+};
+const waitUntil = (...keys) => new Promise(res => {
+    const ev = (event) => keys.some(x => x === event.code) && (window.removeEventListener("keypress", ev), res(event.code));
+    window.addEventListener("keypress", ev);
+});
+const onKey = (func, ...keys) => {
+    const l = (event) => keys.some(x => x === event.code) && func(event, () => window.removeEventListener("keydown", l));
+    window.addEventListener("keydown", l);
+};
+const say = (elem, text) => {
+    let pressed = 0;
+    onKey((e, stop) => { var _a; pressed = Date.now() + 100; (_a = stop) === null || _a === void 0 ? void 0 : _a(); }, "Space");
+    const getPressed = async () => pressed;
+    let pressed2 = false;
+    let done = false;
+    onKey((e, stop) => { var _a; return pressed <= Date.now() || done ? (pressed2 = true, (_a = stop) === null || _a === void 0 ? void 0 : _a()) : ""; }, "Space");
+    const getPressed2 = async () => { done = true; return pressed2; };
+    typewrite(elem, text, getPressed2, getPressed);
+};
+// #endregion
+// #region CLASSES]
+const createElement = (type, func = () => true) => {
+    const e = document.createElement(type);
+    func.call(e, e);
+    return e;
+};
 const gridSize = 5;
 class Tile {
     constructor(id, options = {}, texture = id) {
@@ -344,7 +350,7 @@ const areaFileParser = (text) => text.split("\n").map(x => x.split(/\s+/).map(y 
 const importArea = async (name) => {
     if (areaCache[name])
         return areaCache[name];
-    const areaRaw = await __webpack_require__(1)(`./${name}`);
+    const areaRaw = await __webpack_require__(2)(`./${name}`);
     const empty = Array(areaRaw.area[0].length + 4).fill(0);
     const area = [empty, empty, ...areaRaw.area.map((x) => [0, 0, ...x, 0, 0]), empty, empty];
     const file = tileParser(area);
@@ -385,6 +391,7 @@ const loadArea = async () => {
         elem.style.backgroundImage = `url(./img/background/${e.value[0].texture}.png)`;
         if (fgOpts.flip)
             fg.classList.add(`flip${fgOpts.flip}`);
+        // // fg.classList.add(`fg.${e.value[1].texture}`);
         fg.src = `./img/foreground/${e.value[1].texture}.png`;
         if (e.x === (Math.round(gridSize / 2) - 1) && e.y === (Math.round(gridSize / 2) - 1))
             plyr.src = `./img/player/${player.texId}.png`;
@@ -406,6 +413,7 @@ const setArea = async (area) => {
 };
 window.onload = async () => {
     // #region
+    // const onKey = (func: (event?: KeyboardEvent) => any, ...keys: string[]) => window.addEventListener("keydown", event => keys.some(x => x === event.code) && func(event));
     const uuidv4 = () => "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
         const r = Math.random() * 16 | 0, v = c === "x" ? r : (r & 0x3) | 0x8;
         return v.toString(16);
@@ -446,8 +454,14 @@ window.onload = async () => {
         playerelem.classList.add("player");
         elem.append(playerelem);
     }
-    // > Tile init
     // #endregion
+    const speechbox = document.createElement("div");
+    speechbox.id = "speechbox";
+    ctn.append(speechbox);
+    const box = document.createElement("p");
+    box.id = "box";
+    speechbox.append(box);
+    // > Tile init
     await setArea("test_area");
     await startArea();
     await loadArea();
@@ -487,7 +501,7 @@ window.onload = async () => {
     };
     let movable = true;
     window.addEventListener("keydown", async (event) => {
-        if (!movable)
+        if (!movable || convo)
             return;
         movable = false;
         switch (event.code) {
@@ -507,15 +521,56 @@ window.onload = async () => {
             case "KeyS":
                 await down();
                 break;
+            case "Enter":
+            case "Space":
+                // todo: use
+                break;
         }
         setTimeout(() => movable = true, 50);
     }, true);
 };
-var Util;
-(function (Util) {
-    Util.say = (text) => alert(text);
-})(Util || (Util = {}));
 
+
+/***/ }),
+/* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var map = {
+	"./test_area": [
+		0,
+		9,
+		0
+	],
+	"./test_area.js": [
+		3,
+		7,
+		2
+	],
+	"./test_area.ts": [
+		0,
+		9,
+		0
+	]
+};
+function webpackAsyncContext(req) {
+	if(!__webpack_require__.o(map, req)) {
+		return Promise.resolve().then(function() {
+			var e = new Error("Cannot find module '" + req + "'");
+			e.code = 'MODULE_NOT_FOUND';
+			throw e;
+		});
+	}
+
+	var ids = map[req], id = ids[0];
+	return __webpack_require__.e(ids[2]).then(function() {
+		return __webpack_require__.t(id, ids[1])
+	});
+}
+webpackAsyncContext.keys = function webpackAsyncContextKeys() {
+	return Object.keys(map);
+};
+webpackAsyncContext.id = 2;
+module.exports = webpackAsyncContext;
 
 /***/ })
 /******/ ]);

@@ -1,4 +1,4 @@
-import { Util } from "../index";
+import { say } from "../index";
 /** @type {TileResolvable} */
 export const area: TileResolvable[][] = [
 	[1, 2, 3, 2, 1, 2, 2, 2, 2],
@@ -11,3 +11,4 @@ export const area: TileResolvable[][] = [
 	[1, 2, 2, 2, 2, 1, 1, 1, 3],
 	[1, 1, 1, 1, 2, 1, 2, 1, 2],
 ];
+say("box", "a a a a a a a sw f g yu u re w wf rffff dddd sss rtygfd wetyujh erty");

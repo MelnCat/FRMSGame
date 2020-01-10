@@ -13,4 +13,4 @@ exports.area = [
     [1, 2, 2, 2, 2, 1, 1, 1, 3],
     [1, 1, 1, 1, 2, 1, 2, 1, 2],
 ];
-index_1.say("box", "a a a a a a a sw f g yu u re w wf rffff dddd sss rtygfd wetyujh erty");
+index_1.speak("a a a a a a a sw f g yu u re w wf rffff dddd sss rtygfd wetyujh erty");

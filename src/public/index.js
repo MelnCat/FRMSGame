@@ -208,14 +208,22 @@
 __webpack_require__.r(__webpack_exports__);
 
 // CONCATENATED MODULE: ./src/public/modules/defaults.ts
+
 const apply = (name, value, ...arr) => arr.reduce((p, c) => { p[c] = { [name]: value }; return p; }, {});
+const applyObject = (obj, ...arr) => arr.reduce((p, c) => { p[c] = obj; return p; }, {});
 const wall = (...arr) => apply("wall", true, ...arr);
 const defaults = {
     bg: {
         ...wall(0)
     },
     fg: {
-        ...wall(2, 3, 4, 5)
+        2: {
+            wall: true,
+            use() {
+                speak("A simple table.");
+            }
+        },
+        ...applyObject({ wall: true, async use() { await speak("A comfy chair."); await speak("Too bad it's digital."); } }, 3, 4, 5, 6)
     }
 };
 ;
@@ -223,6 +231,7 @@ const defaults = {
 // CONCATENATED MODULE: ./src/public/index.ts
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "typewrite", function() { return typewrite; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "say", function() { return say; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "speak", function() { return speak; });
 
 // #region TEXT
 let convo = false;
@@ -263,7 +272,9 @@ const say = (elem, text) => {
     onKey((e, stop) => { var _a; return pressed <= Date.now() || done ? (pressed2 = true, (_a = stop) === null || _a === void 0 ? void 0 : _a()) : ""; }, "Space");
     const getPressed2 = async () => { done = true; return pressed2; };
     typewrite(elem, text, getPressed2, getPressed);
+    return new Promise(res => untilTrue(() => pressed2).then(res));
 };
+const speak = (text) => new Promise(res => setTimeout(() => say("box", text).then(res), 100));
 // #endregion
 // #region CLASSES]
 const createElement = (type, func = () => true) => {
@@ -334,7 +345,8 @@ const player = {
     x: 3,
     y: 3,
     area: "",
-    texId: 1
+    texId: 1,
+    look: "down"
 };
 // #endregion
 const isString = (val) => typeof val === "string";
@@ -476,24 +488,28 @@ window.onload = async () => {
         return true;
     };
     const right = async () => {
+        player.look = "right";
         if (!await check("right"))
             return;
         player.x++;
         await loadArea();
     };
     const left = async () => {
+        player.look = "left";
         if (!await check("left"))
             return;
         player.x--;
         await loadArea();
     };
     const down = async () => {
+        player.look = "down";
         if (!await check("down"))
             return;
         player.y++;
         await loadArea();
     };
     const up = async () => {
+        player.look = "up";
         if (!await check("up"))
             return;
         player.y--;
@@ -501,6 +517,7 @@ window.onload = async () => {
     };
     let movable = true;
     window.addEventListener("keydown", async (event) => {
+        var _a;
         if (!movable || convo)
             return;
         movable = false;
@@ -523,7 +540,12 @@ window.onload = async () => {
                 break;
             case "Enter":
             case "Space":
-                // todo: use
+                const plane = await importArea(player.area);
+                const surrounding = plane.getSurrounding(player.x, player.y);
+                const fg = surrounding[player.look].value[1];
+                if (fg.options.disabled)
+                    return;
+                await ((_a = fg.options.use) === null || _a === void 0 ? void 0 : _a.call(surrounding[player.look], fg.options.data, null));
                 break;
         }
         setTimeout(() => movable = true, 50);

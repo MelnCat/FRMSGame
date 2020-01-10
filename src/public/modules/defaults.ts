@@ -1,3 +1,4 @@
+import { speak } from "../index";
 export interface Default {
 	[index: number]: TileOptions;
 }
@@ -11,6 +12,7 @@ export type Applied<T extends number[]> = {
 	};
 }
 export const apply = <T extends keyof TileOptions>(name: T, value: TileOptions[T], ...arr: number[]) => arr.reduce((p, c) => { p[c] = { [name]: value }; return p; }, {} as (Applied<typeof arr>));
+export const applyObject = <T extends Partial<TileOptions>>(obj: T, ...arr: number[]) => arr.reduce((p, c) => { p[c] = obj; return p; }, {} as (Applied<typeof arr>));
 
 export const wall = (...arr: number[]) => apply("wall", true, ...arr);
 export const defaults: Defaults = {
@@ -18,7 +20,13 @@ export const defaults: Defaults = {
 		...wall(0)
 	},
 	fg: {
-		...wall(2, 3, 4, 5)
+		2: {
+			wall: true,
+			use() {
+				speak("A simple table.");
+			}
+		},
+		...applyObject({ wall: true, async use() { await speak("A comfy chair."); await speak("Too bad it's digital."); } }, 3, 4, 5, 6)
 	}
 };
 ;

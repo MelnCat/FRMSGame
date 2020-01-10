@@ -19,6 +19,6 @@ app.put("/api/saves", (req, res) => {
     console.log(req.body);
     res.sendStatus(200);
 });
-http.listen(3000, () => {
-    console.log("Site hosted on *:3000");
+http.listen(8080, () => {
+    console.log("Site hosted on *:8080");
 });

@@ -38,7 +38,9 @@ export const say = (elem: HTMLElement | string, text: string) => {
 	onKey((e, stop) => pressed <= Date.now() || done ? (pressed2 = true, stop?.()) : "", "Space");
 	const getPressed2 = async() => { done = true; return pressed2; };
 	typewrite(elem, text, getPressed2, getPressed);
+	return new Promise(res => untilTrue(() => pressed2).then(res));
 };
+export const speak = (text: string) => new Promise(res => setTimeout(() => say("box", text).then(res), 100));
 // #endregion
 // #region CLASSES]
 const createElement = <T extends keyof HTMLElementTagNameMap>(type: T, func: (this: HTMLElementTagNameMap[T], elem: HTMLElementTagNameMap[T]) => void | any = () => true): HTMLElementTagNameMap[T] => {
@@ -53,13 +55,23 @@ declare global {
 		disabled?: boolean; // not 'use'able
 		start?: number; // start area, 0 is default
 		end?: number; // end area, provides start id, 0 is default
-		use?: (this: Coords<Terrain>, data: any, item: number) => any;
+		use?: (this: Coords<Terrain>, data: any, item: number | null) => any;
 		data?: any;
 		crossable?: number[];
 		flip?: false | "Y" | "X";
 		rotate?: number;
 	}
 	export type TileResolvable = number | [number] | [number, number] | [number, number, TileOptions]
+	export interface Attack {
+		name: string;
+		damage: number;
+		chance: number;
+		text: string[];
+	}
+	export interface User {
+		name: string;
+		attacks: Attack[];
+	}
 }
 class Tile {
 	public constructor(public id: number, public options: TileOptions = {}, public texture = id) {
@@ -117,11 +129,18 @@ class Plane<T> {
 	}
 }
 const areaCache: {[name: string]: Plane<Terrain>} = {};
-const player = {
+const player: {
+	x: number;
+	y: number;
+	area: string;
+	texId: number;
+	look: "up" | "down" | "left" | "right";
+} = {
 	x: 3,
 	y: 3,
 	area: "",
-	texId: 1
+	texId: 1,
+	look: "down"
 };
 // #endregion
 const isString = (val: any): val is string => typeof val === "string";
@@ -255,21 +274,25 @@ window.onload = async() => {
 		return true;
 	};
 	const right = async() => {
+		player.look = "right";
 		if (!await check("right")) return;
 		player.x++;
 		await loadArea();
 	};
 	const left = async() => {
+		player.look = "left";
 		if (!await check("left")) return;
 		player.x--;
 		await loadArea();
 	};
 	const down = async() => {
+		player.look = "down";
 		if (!await check("down")) return;
 		player.y++;
 		await loadArea();
 	};
 	const up = async() => {
+		player.look = "up";
 		if (!await check("up")) return;
 		player.y--;
 		await loadArea();
@@ -297,7 +320,11 @@ window.onload = async() => {
 				break;
 			case "Enter":
 			case "Space":
-				// todo: use
+				const plane = await importArea(player.area);
+				const surrounding = plane.getSurrounding(player.x, player.y);
+				const fg = surrounding[player.look].value[1];
+				if (fg.options.disabled) return;
+				await fg.options.use?.call(surrounding[player.look], fg.options.data, null);
 				break;
 		}
 		setTimeout(() => movable = true, 50);

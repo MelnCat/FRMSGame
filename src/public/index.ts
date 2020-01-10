@@ -38,7 +38,7 @@ export const say = (elem: HTMLElement | string, text: string) => {
 	onKey((e, stop) => pressed <= Date.now() || done ? (pressed2 = true, stop?.()) : "", "Space");
 	const getPressed2 = async() => { done = true; return pressed2; };
 	typewrite(elem, text, getPressed2, getPressed);
-	return new Promise(res => untilTrue(() => pressed2).then(res));
+	return new Promise(res => untilTrue(() => pressed2).then(() => setTimeout(res, 100)));
 };
 export const speak = (text: string) => new Promise(res => setTimeout(() => say("box", text).then(res), 100));
 // #endregion

@@ -272,7 +272,7 @@ const say = (elem, text) => {
     onKey((e, stop) => { var _a; return pressed <= Date.now() || done ? (pressed2 = true, (_a = stop) === null || _a === void 0 ? void 0 : _a()) : ""; }, "Space");
     const getPressed2 = async () => { done = true; return pressed2; };
     typewrite(elem, text, getPressed2, getPressed);
-    return new Promise(res => untilTrue(() => pressed2).then(res));
+    return new Promise(res => untilTrue(() => pressed2).then(() => setTimeout(res, 100)));
 };
 const speak = (text) => new Promise(res => setTimeout(() => say("box", text).then(res), 100));
 // #endregion

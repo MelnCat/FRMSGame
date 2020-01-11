@@ -214,13 +214,20 @@ const applyObject = (obj, ...arr) => arr.reduce((p, c) => { p[c] = obj; return p
 const wall = (...arr) => apply("wall", true, ...arr);
 const defaults = {
     bg: {
-        ...wall(0)
+        ...wall(0),
+        1: {
+            stand() {
+                this.value[0].texture = 2;
+            }
+        }
     },
     fg: {
         2: {
             wall: true,
-            use() {
-                speak("A simple table.");
+            async use() {
+                await speak("A simple table.");
+                this.value[1].texture = 2;
+                console.log(this);
             }
         },
         ...applyObject({ wall: true, async use() { await speak("A comfy chair."); await speak("Too bad it's digital."); } }, 3, 4, 5, 6)
@@ -233,8 +240,21 @@ const defaults = {
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "say", function() { return say; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "speak", function() { return speak; });
 
+const ZERO_WIDTH = "​";
 // #region TEXT
 let convo = false;
+setInterval(() => {
+    const speechbox = document.getElementById("speechbox");
+    if (!speechbox)
+        return;
+    const box = document.getElementById("box");
+    if (!box)
+        return;
+    if (box.innerHTML)
+        speechbox.style.visibility = "visible";
+    else
+        speechbox.style.visibility = "hidden";
+});
 const untilTrue = (func) => new Promise(res => {
     const inter = setInterval(async () => await func() && (res(true), clearInterval(inter)));
 });
@@ -244,7 +264,7 @@ const typewrite = async (id, string, persist, breakLoop = async () => false) => 
     if (!elem)
         return elem;
     convo = true;
-    elem.innerText = "";
+    elem.innerText = ZERO_WIDTH;
     for (const i of string) {
         if (!await (breakLoop instanceof Promise ? breakLoop : breakLoop()))
             await sleep(40)();
@@ -252,8 +272,9 @@ const typewrite = async (id, string, persist, breakLoop = async () => false) => 
     }
     ;
     await untilTrue(persist instanceof Promise ? () => persist : persist);
-    elem.innerText = "";
+    elem.innerText = ZERO_WIDTH;
     convo = false;
+    return setTimeout(() => elem.innerHTML === ZERO_WIDTH ? elem.innerHTML = "" : null, 250);
 };
 const waitUntil = (...keys) => new Promise(res => {
     const ev = (event) => keys.some(x => x === event.code) && (window.removeEventListener("keypress", ev), res(event.code));
@@ -339,6 +360,9 @@ class Plane {
         for (const x of this.indexFlat)
             yield x;
     }
+    toJSON() {
+        return this.arr;
+    }
 }
 const areaCache = {};
 const player = {
@@ -348,6 +372,27 @@ const player = {
     texId: 1,
     look: "down"
 };
+const end = Date.now() + 1000;
+const loadInterval = setInterval(() => {
+    if (end < Date.now())
+        clearInterval(loadInterval);
+    if (localStorage.player)
+        Object.assign(player, JSON.parse(localStorage.player));
+    if (localStorage.cached) {
+        const cached = JSON.parse(localStorage.cached);
+        for (const i in cached) {
+            const area = areaCache[i];
+            const cach = cached[i];
+            area.arr.map(x => x.map(y => {
+                // eslint-disable-next-line max-nested-callbacks
+                y.map(z => ["texture", "id"].map(a => z[a]));
+            }));
+        }
+        ;
+    }
+    ;
+});
+console.log(player);
 // #endregion
 const isString = (val) => typeof val === "string";
 const isNumber = (val) => typeof val === "number";
@@ -384,7 +429,6 @@ const getDirect = async () => {
     return plane.getSurrounding(player.x, player.y);
 };
 const loadArea = async () => {
-    const { x, y } = player;
     const [surrounding, area] = await getSurrounding();
     for (const e of surrounding) {
         const elem = getGridElement(e.x, e.y);
@@ -411,6 +455,11 @@ const loadArea = async () => {
             plyr.src = "";
     }
 };
+setInterval(loadArea, 100);
+setTimeout(() => setInterval(() => {
+    localStorage.player = JSON.stringify(player);
+    localStorage.cached = JSON.stringify(areaCache);
+}, 100), 1000);
 const startArea = async (starting = 0) => {
     const plane = await importArea(player.area);
     const center = plane.indexFlat.find(x => x.value.some(y => y.options.start === starting));
@@ -487,32 +536,20 @@ window.onload = async () => {
             return false;
         return true;
     };
-    const right = async () => {
-        player.look = "right";
-        if (!await check("right"))
+    const move = async (direction, func) => {
+        var _a, _b;
+        player.look = direction;
+        if (!await check(direction))
             return;
-        player.x++;
-        await loadArea();
-    };
-    const left = async () => {
-        player.look = "left";
-        if (!await check("left"))
+        func();
+        const plane = await importArea(player.area);
+        const standed = plane.get(player.x, player.y);
+        const fg = standed.value[1];
+        if (fg.options.disabled)
             return;
-        player.x--;
-        await loadArea();
-    };
-    const down = async () => {
-        player.look = "down";
-        if (!await check("down"))
-            return;
-        player.y++;
-        await loadArea();
-    };
-    const up = async () => {
-        player.look = "up";
-        if (!await check("up"))
-            return;
-        player.y--;
+        await ((_a = fg.options.stand) === null || _a === void 0 ? void 0 : _a.call(standed, fg.options.data, null));
+        const bg = standed.value[0];
+        await ((_b = bg.options.stand) === null || _b === void 0 ? void 0 : _b.call(standed, fg.options.data, null));
         await loadArea();
     };
     let movable = true;
@@ -524,19 +561,19 @@ window.onload = async () => {
         switch (event.code) {
             case "ArrowLeft":
             case "KeyA":
-                await left();
+                await move("left", () => player.x--);
                 break;
             case "ArrowRight":
             case "KeyD":
-                await right();
+                await move("right", () => player.x++);
                 break;
             case "ArrowUp":
             case "KeyW":
-                await up();
+                await move("up", () => player.y--);
                 break;
             case "ArrowDown":
             case "KeyS":
-                await down();
+                await move("down", () => player.y++);
                 break;
             case "Enter":
             case "Space":
@@ -546,6 +583,7 @@ window.onload = async () => {
                 if (fg.options.disabled)
                     return;
                 await ((_a = fg.options.use) === null || _a === void 0 ? void 0 : _a.call(surrounding[player.look], fg.options.data, null));
+                await loadArea();
                 break;
         }
         setTimeout(() => movable = true, 50);

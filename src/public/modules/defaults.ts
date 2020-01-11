@@ -17,13 +17,20 @@ export const applyObject = <T extends Partial<TileOptions>>(obj: T, ...arr: numb
 export const wall = (...arr: number[]) => apply("wall", true, ...arr);
 export const defaults: Defaults = {
 	bg: {
-		...wall(0)
+		...wall(0),
+		1: {
+			stand() {
+				this.value[0].texture = 2;
+			}
+		}
 	},
 	fg: {
 		2: {
 			wall: true,
-			use() {
-				speak("A simple table.");
+			async use() {
+				await speak("A simple table.");
+				this.value[1].texture = 2;
+				console.log(this);
 			}
 		},
 		...applyObject({ wall: true, async use() { await speak("A comfy chair."); await speak("Too bad it's digital."); } }, 3, 4, 5, 6)

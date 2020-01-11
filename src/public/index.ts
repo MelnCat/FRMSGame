@@ -1,9 +1,19 @@
 import * as Swal from "sweetalert2"; // eslint-disable-line
 import JSON5 from "json5";
 import util from "util";
+import _ from "lodash";
 import { defaults } from "./modules/defaults";
+const ZERO_WIDTH = "​";
 // #region TEXT
 let convo = false;
+setInterval(() => {
+	const speechbox = document.getElementById("speechbox");
+	if (!speechbox) return;
+	const box = document.getElementById("box");
+	if (!box) return;
+	if (box.innerHTML) speechbox.style.visibility = "visible";
+	else speechbox.style.visibility = "hidden";
+});
 const untilTrue = (func: Function) => new Promise(res => {
 	const inter = setInterval(async() => await func() && (res(true), clearInterval(inter)));
 });
@@ -12,14 +22,15 @@ export const typewrite = async(id: string | HTMLElement, string: string, persist
 	const elem = id instanceof HTMLElement ? id : document.getElementById(id);
 	if (!elem) return elem;
 	convo = true;
-	elem.innerText = "";
+	elem.innerText = ZERO_WIDTH;
 	for (const i of string) {
 		if (!await (breakLoop instanceof Promise ? breakLoop : breakLoop())) await sleep(40)();
 		elem.innerHTML += i;
 	};
 	await untilTrue(persist instanceof Promise ? () => persist : persist);
-	elem.innerText = "";
+	elem.innerText = ZERO_WIDTH;
 	convo = false;
+	return setTimeout(() => elem.innerHTML === ZERO_WIDTH ? elem.innerHTML = "" : null, 250);
 };
 const waitUntil = (...keys: string[]) => new Promise(res => {
 	const ev = (event: KeyboardEvent): any => keys.some(x => x === event.code) && (window.removeEventListener("keypress", ev), res(event.code));
@@ -56,6 +67,7 @@ declare global {
 		start?: number; // start area, 0 is default
 		end?: number; // end area, provides start id, 0 is default
 		use?: (this: Coords<Terrain>, data: any, item: number | null) => any;
+		stand?: (this: Coords<Terrain>, data: any, item: number | null) => any;
 		data?: any;
 		crossable?: number[];
 		flip?: false | "Y" | "X";
@@ -67,6 +79,7 @@ declare global {
 		damage: number;
 		chance: number;
 		text: string[];
+		class: string;
 	}
 	export interface User {
 		name: string;
@@ -127,8 +140,12 @@ class Plane<T> {
 	public *[Symbol.iterator]() {
 		for (const x of this.indexFlat) yield x;
 	}
+	public toJSON() {
+		return this.arr;
+	}
 }
 const areaCache: {[name: string]: Plane<Terrain>} = {};
+
 const player: {
 	x: number;
 	y: number;
@@ -142,6 +159,24 @@ const player: {
 	texId: 1,
 	look: "down"
 };
+const end = Date.now() + 1000;
+const loadInterval = setInterval(() => {
+	if (end < Date.now()) clearInterval(loadInterval);
+	if (localStorage.player) Object.assign(player, JSON.parse(localStorage.player));
+	if (localStorage.cached) {
+		const cached = JSON.parse(localStorage.cached);
+		for (const i in cached) {
+			const area = areaCache[i];
+			const cach = cached[i];
+			if (!(cach && area)) continue;
+			area.arr.map(x => x.map(y => {
+				// eslint-disable-next-line max-nested-callbacks
+				y.map(z => (["texture", "id"] as const).map(a => z[a]));
+			}));
+		};
+	};
+});
+console.log(player);
 // #endregion
 const isString = (val: any): val is string => typeof val === "string";
 const isNumber = (val: any): val is number => typeof val === "number";
@@ -153,7 +188,6 @@ const tileParser = (arr: TileResolvable[][]): Terrain[][] => // [number: bg, num
 	}))
 ;
 const areaFileParser = (text: string) => text.split("\n").map(x => x.split(/\s+/).map(y => y.split(/:\s+/).map(z => Number.parseInt(z, 16))));
-
 const importArea = async(name: string) => {
 	if (areaCache[name]) return areaCache[name];
 	const areaRaw = await import(`./areas/${name}`);
@@ -178,7 +212,6 @@ const getDirect = async() => {
 	return plane.getSurrounding(player.x, player.y);
 };
 const loadArea = async(): Promise<void | any> => {
-	const { x, y } = player;
 	const [surrounding, area] = await getSurrounding();
 	for (const e of surrounding) {
 		const elem = getGridElement(e.x, e.y);
@@ -200,6 +233,11 @@ const loadArea = async(): Promise<void | any> => {
 		else plyr.src = "";
 	}
 };
+setInterval(loadArea, 100);
+setTimeout(() => setInterval(() => {
+	localStorage.player = JSON.stringify(player);
+	localStorage.cached = JSON.stringify(areaCache);
+}, 100), 1000);
 const startArea = async(starting = 0) => {
 	const plane = await importArea(player.area);
 	const center = plane.indexFlat.find(x => x.value.some(y => y.options.start === starting));
@@ -273,28 +311,17 @@ window.onload = async() => {
 		if (bgOptions.wall || fgOptions.wall) return false;
 		return true;
 	};
-	const right = async() => {
-		player.look = "right";
-		if (!await check("right")) return;
-		player.x++;
-		await loadArea();
-	};
-	const left = async() => {
-		player.look = "left";
-		if (!await check("left")) return;
-		player.x--;
-		await loadArea();
-	};
-	const down = async() => {
-		player.look = "down";
-		if (!await check("down")) return;
-		player.y++;
-		await loadArea();
-	};
-	const up = async() => {
-		player.look = "up";
-		if (!await check("up")) return;
-		player.y--;
+	const move = async(direction: "left" | "right" | "up" | "down", func: CallableFunction) => {
+		player.look = direction;
+		if (!await check(direction)) return;
+		func();
+		const plane = await importArea(player.area);
+		const standed = plane.get(player.x, player.y);
+		const fg = standed.value[1];
+		if (fg.options.disabled) return;
+		await fg.options.stand?.call(standed, fg.options.data, null);
+		const bg = standed.value[0];
+		await bg.options.stand?.call(standed, fg.options.data, null);
 		await loadArea();
 	};
 	let movable = true;
@@ -304,19 +331,19 @@ window.onload = async() => {
 		switch (event.code) {
 			case "ArrowLeft":
 			case "KeyA":
-				await left();
+				await move("left", () => player.x--);
 				break;
 			case "ArrowRight":
 			case "KeyD":
-				await right();
+				await move("right", () => player.x++);
 				break;
 			case "ArrowUp":
 			case "KeyW":
-				await up();
+				await move("up", () => player.y--);
 				break;
 			case "ArrowDown":
 			case "KeyS":
-				await down();
+				await move("down", () => player.y++);
 				break;
 			case "Enter":
 			case "Space":
@@ -325,6 +352,7 @@ window.onload = async() => {
 				const fg = surrounding[player.look].value[1];
 				if (fg.options.disabled) return;
 				await fg.options.use?.call(surrounding[player.look], fg.options.data, null);
+				await loadArea();
 				break;
 		}
 		setTimeout(() => movable = true, 50);

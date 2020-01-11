@@ -1,4 +1,8 @@
 * {
+  font-family: inherit;
+}
+
+:root {
   font-family: "Open Sans";
 }
 
@@ -70,9 +74,26 @@ img {
 #speechbox {
   height: 168px;
   width: 100%;
+  background-color: #330011;
+  border: #efef2f solid 12px;
+  position: absolute;
+  bottom: 0px;
+  left: 0px;
+  box-sizing: border-box;
+  z-index: 10;
+  color: white;
 }
 #speechbox p {
-  padding: 16px;
+  margin: 0px;
+  padding: 8px;
+}
+
+.attack {
+  filter: none;
+  transition: filter 1s;
+}
+.attack .fire {
+  filter: sepia(100%) saturate(200%);
 }
 
 /*# sourceMappingURL=index.css.map */

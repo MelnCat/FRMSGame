@@ -383,6 +383,8 @@ const loadInterval = setInterval(() => {
         for (const i in cached) {
             const area = areaCache[i];
             const cach = cached[i];
+            if (!(cach && area))
+                continue;
             area.arr.map(x => x.map(y => {
                 // eslint-disable-next-line max-nested-callbacks
                 y.map(z => ["texture", "id"].map(a => z[a]));

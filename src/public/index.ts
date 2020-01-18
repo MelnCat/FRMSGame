@@ -17,6 +17,7 @@ setInterval(() => {
 const untilTrue = (func: Function) => new Promise(res => {
 	const inter = setInterval(async() => await func() && (res(true), clearInterval(inter)));
 });
+type dir = "left" | "right" | "up" | "down";
 const sleep = (milliseconds: number) => () => new Promise(resolve => setTimeout(resolve, milliseconds));
 export const typewrite = async(id: string | HTMLElement, string: string, persist: (() => Promise<any>) | Promise<any>, breakLoop: (() => Promise<any>) | Promise<any> = async() => false) => {
 	const elem = id instanceof HTMLElement ? id : document.getElementById(id);
@@ -146,12 +147,12 @@ class Plane<T> {
 }
 const areaCache: {[name: string]: Plane<Terrain>} = {};
 
-const player: {
+export const player: {
 	x: number;
 	y: number;
 	area: string;
 	texId: number;
-	look: "up" | "down" | "left" | "right";
+	look: dir;
 } = {
 	x: 3,
 	y: 3,
@@ -188,6 +189,8 @@ const tileParser = (arr: TileResolvable[][]): Terrain[][] => // [number: bg, num
 	}))
 ;
 const areaFileParser = (text: string) => text.split("\n").map(x => x.split(/\s+/).map(y => y.split(/:\s+/).map(z => Number.parseInt(z, 16))));
+const genURL = (path: string, id: number, ext?: string) => `url(./img/${path}/${id}${ext ? "." : ""}${ext ?? ""})`;
+const genFullURL = (path: string, id: number) => `${genURL(path, id, "gif")}, ${genURL(path, id, "png")}`;
 const importArea = async(name: string) => {
 	if (areaCache[name]) return areaCache[name];
 	const areaRaw = await import(`./areas/${name}`);
@@ -225,13 +228,22 @@ const loadArea = async(): Promise<void | any> => {
 		const fgOpts = e.value[1].options;
 		if (!elem || !fg || !plyr) console.error(e.x, e.y);
 		if (bgOpts.flip) elem.classList.add(`flip${bgOpts.flip}`);
-		elem!.style.backgroundImage = `url(./img/background/${e.value[0].texture}.png)`;
+		elem!.style.backgroundImage = genFullURL("background", e.value[0].texture);
 		if (fgOpts.flip) fg.classList.add(`flip${fgOpts.flip}`);
 		// // fg.classList.add(`fg.${e.value[1].texture}`);
-		fg!.src = `./img/foreground/${e.value[1].texture}.png`;
-		if (e.x === (Math.round(gridSize / 2) - 1) && e.y === (Math.round(gridSize / 2) - 1)) plyr.src = `./img/player/${player.texId}.png`;
-		else plyr.src = "";
+		fg!.style.backgroundImage = genFullURL("foreground", e.value[1].texture);
+		if (e.x === (Math.round(gridSize / 2) - 1) && e.y === (Math.round(gridSize / 2) - 1)) plyr.style.backgroundImage = genFullURL("player", player.texId);
+		else plyr.style.backgroundImage = "";
 	}
+};
+export const setArea = async(area: string, id = 0) => {
+	player.area = area;
+	const start = await importArea(area);
+	const startArea = start.indexFlat.find(x => x.value[1].options.start === id);
+	if (!startArea) throw new Error(`No startarea for ${area}`);
+	player.x = startArea.x;
+	player.y = startArea.y;
+	await loadArea();
 };
 setInterval(loadArea, 100);
 setTimeout(() => setInterval(() => {
@@ -245,10 +257,29 @@ const startArea = async(starting = 0) => {
 	player.x = center.y;
 	player.y = center.x;
 };
-const setArea = async(area: string) => {
-	player.area = area;
-	// // await loadArea();
+const check = async(look: dir) => {
+	const area = await importArea(player.area);
+	const surr = await getDirect();
+	if (!surr || !surr[look]) return false;
+	const { [look]: { value: [{ options: bgOptions }, { options: fgOptions }] } } = surr;
+	if (bgOptions.wall || fgOptions.wall) return false;
+	return true;
 };
+export const move = async(direction: dir) => {
+	const func = { left: () => player.x--, up: () => player.y--, down: () => player.y++, right: () => player.x++ }[direction];
+	player.look = direction;
+	if (!await check(direction)) return;
+	func();
+	const plane = await importArea(player.area);
+	const standed = plane.get(player.x, player.y);
+	const fg = standed.value[1];
+	if (fg.options.disabled) return;
+	await fg.options.stand?.call(standed, fg.options.data, null);
+	const bg = standed.value[0];
+	await bg.options.stand?.call(standed, fg.options.data, null);
+	await loadArea();
+};
+export const moveSlow = (direction: dir) => new Promise(res => setTimeout(() => res(move(direction)), 200));
 window.onload = async() => {
 	// #region
 	// const onKey = (func: (event?: KeyboardEvent) => any, ...keys: string[]) => window.addEventListener("keydown", event => keys.some(x => x === event.code) && func(event));
@@ -283,11 +314,11 @@ window.onload = async() => {
 		ctn.append(elem);
 		elem.classList.add("grid-item");
 		elem.id = `grid-${i}`;
-		const foreground = document.createElement("IMG");
+		const foreground = document.createElement("DIV");
 		foreground.id = `grid-${i}-fg`;
 		foreground.classList.add("fg");
 		elem.append(foreground);
-		const playerelem = document.createElement("IMG");
+		const playerelem = document.createElement("DIV");
 		playerelem.id = `grid-${i}-player`;
 		playerelem.classList.add("player");
 		elem.append(playerelem);
@@ -299,31 +330,13 @@ window.onload = async() => {
 	const box = document.createElement("p");
 	box.id = "box";
 	speechbox.append(box);
+	const areaDiv = document.createElement("div");
+	areaDiv.id = "areaDiv";
+	ctn.append(areaDiv);
 	// > Tile init
-	await setArea("test_area");
+	setArea("school_hallway1");
 	await startArea();
 	await loadArea();
-	const check = async(look: "left" | "right" | "up" | "down") => {
-		const area = await importArea(player.area);
-		const surr = await getDirect();
-		if (!surr || !surr[look]) return false;
-		const { [look]: { value: [{ options: bgOptions }, { options: fgOptions }] } } = surr;
-		if (bgOptions.wall || fgOptions.wall) return false;
-		return true;
-	};
-	const move = async(direction: "left" | "right" | "up" | "down", func: CallableFunction) => {
-		player.look = direction;
-		if (!await check(direction)) return;
-		func();
-		const plane = await importArea(player.area);
-		const standed = plane.get(player.x, player.y);
-		const fg = standed.value[1];
-		if (fg.options.disabled) return;
-		await fg.options.stand?.call(standed, fg.options.data, null);
-		const bg = standed.value[0];
-		await bg.options.stand?.call(standed, fg.options.data, null);
-		await loadArea();
-	};
 	let movable = true;
 	window.addEventListener("keydown", async event => {
 		if (!movable || convo) return;
@@ -331,19 +344,19 @@ window.onload = async() => {
 		switch (event.code) {
 			case "ArrowLeft":
 			case "KeyA":
-				await move("left", () => player.x--);
+				await move("left");
 				break;
 			case "ArrowRight":
 			case "KeyD":
-				await move("right", () => player.x++);
+				await move("right");
 				break;
 			case "ArrowUp":
 			case "KeyW":
-				await move("up", () => player.y--);
+				await move("up");
 				break;
 			case "ArrowDown":
 			case "KeyS":
-				await move("down", () => player.y++);
+				await move("down");
 				break;
 			case "Enter":
 			case "Space":

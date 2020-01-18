@@ -1,12 +1,13 @@
-(window["webpackJsonp"] = window["webpackJsonp"] || []).push([[0],[
-/* 0 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
+(window["webpackJsonp"] = window["webpackJsonp"] || []).push([[3],{
+
+/***/ 4:
+/***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "area", function() { return area; });
+
+Object.defineProperty(exports, "__esModule", { value: true });
 /** @type {TileResolvable} */
-const area = [
+exports.area = [
     [1, 2, 3, 2, 1, 2, 2, 2, 2],
     [2, 3, 1, 2, 1, 1, 1, 1, 3],
     [3, 3, 3, 3, 3, 3, 3, 3, 3],
@@ -20,4 +21,5 @@ const area = [
 
 
 /***/ })
-]]);
+
+}]);

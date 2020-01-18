@@ -8,8 +8,8 @@ exports.defaults = {
     bg: {
         ...exports.wall(0),
         1: {
-            stand() {
-                this.value[0].texture = 2;
+            async stand() {
+                await index_1.moveSlow("down");
             }
         }
     },
@@ -18,7 +18,7 @@ exports.defaults = {
             wall: true,
             async use() {
                 await index_1.speak("A simple table.");
-                this.value[1].texture = 2;
+                this.value[1].texture = 3;
                 console.log(this);
             }
         },

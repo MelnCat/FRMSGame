@@ -1,4 +1,4 @@
-import { speak } from "../index";
+import { speak, moveSlow } from "../index";
 export interface Default {
 	[index: number]: TileOptions;
 }
@@ -19,8 +19,8 @@ export const defaults: Defaults = {
 	bg: {
 		...wall(0),
 		1: {
-			stand() {
-				this.value[0].texture = 2;
+			async stand() {
+				await moveSlow("down");
 			}
 		}
 	},
@@ -29,7 +29,7 @@ export const defaults: Defaults = {
 			wall: true,
 			async use() {
 				await speak("A simple table.");
-				this.value[1].texture = 2;
+				this.value[1].texture = 3;
 				console.log(this);
 			}
 		},

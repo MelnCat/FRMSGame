@@ -64,11 +64,34 @@ img {
 
 .player {
 	z-index: 10;
+	width: $cell-size;
+	height: $cell-size;
+	background-repeat: no-repeat;
+	background-size: cover;
+	position: absolute;
+}
+
+#areaDiv {
+	font-size: 2em;
+	color: white;
+	font-weight: 900;
+	background-image: linear-gradient(white, black);
+	width: 100%;
+	position: absolute;
+	top: 0px;
+	height: 46px;
+	text-align: center;
+
 }
 
 .fg {
 	z-index: 9;
+	width: $cell-size;
+	height: $cell-size;
 	position: relative;
+	background-repeat: no-repeat;
+	background-size: cover;
+	position: absolute;
 }
 
 .typewriter {

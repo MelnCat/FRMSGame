@@ -36,7 +36,7 @@
 /******/ 	// undefined = chunk not loaded, null = chunk preloaded/prefetched
 /******/ 	// Promise = chunk loading, 0 = chunk loaded
 /******/ 	var installedChunks = {
-/******/ 		1: 0
+/******/ 		2: 0
 /******/ 	};
 /******/
 /******/
@@ -196,12 +196,13 @@
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 1);
+/******/ 	return __webpack_require__(__webpack_require__.s = 2);
 /******/ })
 /************************************************************************/
 /******/ ([
 /* 0 */,
-/* 1 */
+/* 1 */,
+/* 2 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -216,8 +217,8 @@ const defaults = {
     bg: {
         ...wall(0),
         1: {
-            stand() {
-                this.value[0].texture = 2;
+            async stand() {
+                await moveSlow("down");
             }
         }
     },
@@ -226,7 +227,7 @@ const defaults = {
             wall: true,
             async use() {
                 await speak("A simple table.");
-                this.value[1].texture = 2;
+                this.value[1].texture = 3;
                 console.log(this);
             }
         },
@@ -239,6 +240,10 @@ const defaults = {
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "typewrite", function() { return typewrite; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "say", function() { return say; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "speak", function() { return speak; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "player", function() { return player; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "setArea", function() { return setArea; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "move", function() { return move; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "moveSlow", function() { return moveSlow; });
 
 const ZERO_WIDTH = "​";
 // #region TEXT
@@ -406,10 +411,12 @@ const tileParser = (arr) => // [number: bg, number: fg, opts]
     return [new Tile(background, defaults.bg[background]), new Tile(foreground, Object.assign({}, defaults.fg[foreground], options))];
 }));
 const areaFileParser = (text) => text.split("\n").map(x => x.split(/\s+/).map(y => y.split(/:\s+/).map(z => Number.parseInt(z, 16))));
+const genURL = (path, id, ext) => `url(./img/${path}/${id}${ext ? "." : ""}${(ext !== null && ext !== void 0 ? ext : "")})`;
+const genFullURL = (path, id) => `${genURL(path, id, "gif")}, ${genURL(path, id, "png")}`;
 const importArea = async (name) => {
     if (areaCache[name])
         return areaCache[name];
-    const areaRaw = await __webpack_require__(2)(`./${name}`);
+    const areaRaw = await __webpack_require__(3)(`./${name}`);
     const empty = Array(areaRaw.area[0].length + 4).fill(0);
     const area = [empty, empty, ...areaRaw.area.map((x) => [0, 0, ...x, 0, 0]), empty, empty];
     const file = tileParser(area);
@@ -446,16 +453,26 @@ const loadArea = async () => {
             console.error(e.x, e.y);
         if (bgOpts.flip)
             elem.classList.add(`flip${bgOpts.flip}`);
-        elem.style.backgroundImage = `url(./img/background/${e.value[0].texture}.png)`;
+        elem.style.backgroundImage = genFullURL("background", e.value[0].texture);
         if (fgOpts.flip)
             fg.classList.add(`flip${fgOpts.flip}`);
         // // fg.classList.add(`fg.${e.value[1].texture}`);
-        fg.src = `./img/foreground/${e.value[1].texture}.png`;
+        fg.style.backgroundImage = genFullURL("foreground", e.value[1].texture);
         if (e.x === (Math.round(gridSize / 2) - 1) && e.y === (Math.round(gridSize / 2) - 1))
-            plyr.src = `./img/player/${player.texId}.png`;
+            plyr.style.backgroundImage = genFullURL("player", player.texId);
         else
-            plyr.src = "";
+            plyr.style.backgroundImage = "";
     }
+};
+const setArea = async (area, id = 0) => {
+    player.area = area;
+    const start = await importArea(area);
+    const startArea = start.indexFlat.find(x => x.value[1].options.start === id);
+    if (!startArea)
+        throw new Error(`No startarea for ${area}`);
+    player.x = startArea.x;
+    player.y = startArea.y;
+    await loadArea();
 };
 setInterval(loadArea, 100);
 setTimeout(() => setInterval(() => {
@@ -470,10 +487,34 @@ const startArea = async (starting = 0) => {
     player.x = center.y;
     player.y = center.x;
 };
-const setArea = async (area) => {
-    player.area = area;
-    // // await loadArea();
+const check = async (look) => {
+    const area = await importArea(player.area);
+    const surr = await getDirect();
+    if (!surr || !surr[look])
+        return false;
+    const { [look]: { value: [{ options: bgOptions }, { options: fgOptions }] } } = surr;
+    if (bgOptions.wall || fgOptions.wall)
+        return false;
+    return true;
 };
+const move = async (direction) => {
+    var _a, _b;
+    const func = { left: () => player.x--, up: () => player.y--, down: () => player.y++, right: () => player.x++ }[direction];
+    player.look = direction;
+    if (!await check(direction))
+        return;
+    func();
+    const plane = await importArea(player.area);
+    const standed = plane.get(player.x, player.y);
+    const fg = standed.value[1];
+    if (fg.options.disabled)
+        return;
+    await ((_a = fg.options.stand) === null || _a === void 0 ? void 0 : _a.call(standed, fg.options.data, null));
+    const bg = standed.value[0];
+    await ((_b = bg.options.stand) === null || _b === void 0 ? void 0 : _b.call(standed, fg.options.data, null));
+    await loadArea();
+};
+const moveSlow = (direction) => new Promise(res => setTimeout(() => res(move(direction)), 200));
 window.onload = async () => {
     // #region
     // const onKey = (func: (event?: KeyboardEvent) => any, ...keys: string[]) => window.addEventListener("keydown", event => keys.some(x => x === event.code) && func(event));
@@ -508,11 +549,11 @@ window.onload = async () => {
         ctn.append(elem);
         elem.classList.add("grid-item");
         elem.id = `grid-${i}`;
-        const foreground = document.createElement("IMG");
+        const foreground = document.createElement("DIV");
         foreground.id = `grid-${i}-fg`;
         foreground.classList.add("fg");
         elem.append(foreground);
-        const playerelem = document.createElement("IMG");
+        const playerelem = document.createElement("DIV");
         playerelem.id = `grid-${i}-player`;
         playerelem.classList.add("player");
         elem.append(playerelem);
@@ -524,36 +565,13 @@ window.onload = async () => {
     const box = document.createElement("p");
     box.id = "box";
     speechbox.append(box);
+    const areaDiv = document.createElement("div");
+    areaDiv.id = "areaDiv";
+    ctn.append(areaDiv);
     // > Tile init
-    await setArea("test_area");
+    setArea("school_hallway1");
     await startArea();
     await loadArea();
-    const check = async (look) => {
-        const area = await importArea(player.area);
-        const surr = await getDirect();
-        if (!surr || !surr[look])
-            return false;
-        const { [look]: { value: [{ options: bgOptions }, { options: fgOptions }] } } = surr;
-        if (bgOptions.wall || fgOptions.wall)
-            return false;
-        return true;
-    };
-    const move = async (direction, func) => {
-        var _a, _b;
-        player.look = direction;
-        if (!await check(direction))
-            return;
-        func();
-        const plane = await importArea(player.area);
-        const standed = plane.get(player.x, player.y);
-        const fg = standed.value[1];
-        if (fg.options.disabled)
-            return;
-        await ((_a = fg.options.stand) === null || _a === void 0 ? void 0 : _a.call(standed, fg.options.data, null));
-        const bg = standed.value[0];
-        await ((_b = bg.options.stand) === null || _b === void 0 ? void 0 : _b.call(standed, fg.options.data, null));
-        await loadArea();
-    };
     let movable = true;
     window.addEventListener("keydown", async (event) => {
         var _a;
@@ -563,19 +581,19 @@ window.onload = async () => {
         switch (event.code) {
             case "ArrowLeft":
             case "KeyA":
-                await move("left", () => player.x--);
+                await move("left");
                 break;
             case "ArrowRight":
             case "KeyD":
-                await move("right", () => player.x++);
+                await move("right");
                 break;
             case "ArrowUp":
             case "KeyW":
-                await move("up", () => player.y--);
+                await move("up");
                 break;
             case "ArrowDown":
             case "KeyS":
-                await move("down", () => player.y++);
+                await move("down");
                 break;
             case "Enter":
             case "Space":
@@ -594,24 +612,39 @@ window.onload = async () => {
 
 
 /***/ }),
-/* 2 */
+/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var map = {
-	"./test_area": [
+	"./school_hallway1": [
 		0,
 		9,
 		0
+	],
+	"./school_hallway1.js": [
+		4,
+		7,
+		3
+	],
+	"./school_hallway1.ts": [
+		0,
+		9,
+		0
+	],
+	"./test_area": [
+		1,
+		9,
+		1
 	],
 	"./test_area.js": [
-		3,
+		5,
 		7,
-		2
+		4
 	],
 	"./test_area.ts": [
-		0,
+		1,
 		9,
-		0
+		1
 	]
 };
 function webpackAsyncContext(req) {
@@ -631,7 +664,7 @@ function webpackAsyncContext(req) {
 webpackAsyncContext.keys = function webpackAsyncContextKeys() {
 	return Object.keys(map);
 };
-webpackAsyncContext.id = 2;
+webpackAsyncContext.id = 3;
 module.exports = webpackAsyncContext;
 
 /***/ })

@@ -22,7 +22,9 @@ exports.defaults = {
                 console.log(this);
             }
         },
-        ...exports.applyObject({ wall: true, async use() { await index_1.speak("A comfy chair."); await index_1.speak("Too bad it's digital."); } }, 3, 4, 5, 6)
+        ...exports.applyObject({ wall: true, async use() { await index_1.speak("A comfy chair."); await index_1.speak("Too bad it's digital."); } }, 3, 4, 5, 6),
+        ...exports.applyObject({ wall: true, async use() { await index_1.speak("A couple of lockers."); await index_1.speak("None of them are mine."); } }, 7, 8, 9),
+        ...exports.applyObject({ wall: true, async use() { await index_1.speak("These lockers fell."); await index_1.speak("Hopefully no fragile items are inside."); } }, 10, 11),
     }
 };
 ;

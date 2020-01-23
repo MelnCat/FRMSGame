@@ -3,7 +3,9 @@ export const names = {
 		0: "blank",
 		1: "grass",
 		2: "grass_flowery",
-		3: "school_plank",
+		3: "bricks",
+		4: "school_plank",
+		5: "school_plank2",
 	},
 	fg: {
 		0: "blank",
@@ -13,5 +15,10 @@ export const names = {
 		4: "chair_right",
 		5: "chair_left",
 		6: "chair_up",
+		7: "locker_right",
+		8: "locker_double",
+		9: "locker_left",
+		10: "locker_fallA",
+		11: "locker_fallB",
 	}
 } as const;

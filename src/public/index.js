@@ -231,7 +231,9 @@ const defaults = {
                 console.log(this);
             }
         },
-        ...applyObject({ wall: true, async use() { await speak("A comfy chair."); await speak("Too bad it's digital."); } }, 3, 4, 5, 6)
+        ...applyObject({ wall: true, async use() { await speak("A comfy chair."); await speak("Too bad it's digital."); } }, 3, 4, 5, 6),
+        ...applyObject({ wall: true, async use() { await speak("A couple of lockers."); await speak("None of them are mine."); } }, 7, 8, 9),
+        ...applyObject({ wall: true, async use() { await speak("These lockers fell."); await speak("Hopefully no fragile items are inside."); } }, 10, 11),
     }
 };
 ;

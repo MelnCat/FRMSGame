@@ -78,7 +78,7 @@ img {
 	background-image: linear-gradient(white, black);
 	width: 100%;
 	position: absolute;
-	top: 0px;
+	bottom: -$cell-size;
 	height: 46px;
 	text-align: center;
 

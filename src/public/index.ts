@@ -3,6 +3,23 @@ import JSON5 from "json5";
 import util from "util";
 import _ from "lodash";
 import { defaults } from "./modules/defaults";
+import { names } from "./modules/names";
+const URLExists = (url: string) => {
+	try {
+		const request = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP");
+		request.open("GET", url, false);
+		request.send();
+		return request.status !== 404;
+	} catch {
+		return false;
+	}
+};
+const genNoCSSURL = (path: string, id: number | string, ext?: string) => `./img/${path}/${id}${ext ? "." : ""}${ext ?? ""}`;
+const genURL = (path: string, id: number | string, ext?: string) => `url(${genNoCSSURL(path, id, ext)})`;
+const genFullURL = (path: string, id: number | string) => `${genURL(path, id, "gif")}, ${genURL(path, id, "png")}`;
+const preloadURL = (path: string, id: number | string, ext: string) => new Promise(res => { try { if (!URLExists(genNoCSSURL(path, id, ext))) return; const img = new Image(); img.src = genNoCSSURL(path, id, ext); img.onload = res; } catch {} });
+// eslint-disable-next-line no-sequences
+const preloadFullURL = async(path: string, id: number | string) => { await preloadURL(path, id, "gif"), await preloadURL(path, id, "gif"); };
 const ZERO_WIDTH = "​";
 const trycatch = <T>(func: CallableFunction, no: T, yes?: T) => {
 	try {
@@ -30,7 +47,7 @@ const untilTrue = (func: Function) => new Promise(res => {
 	const inter = setInterval(async() => await func() && (res(true), clearInterval(inter)));
 });
 type dir = "left" | "right" | "up" | "down";
-const sleep = (milliseconds: number) => () => new Promise(resolve => setTimeout(resolve, milliseconds));
+export const sleep = (milliseconds: number) => () => new Promise(resolve => setTimeout(resolve, milliseconds));
 export const typewrite = async(id: string | HTMLElement, string: string, persist: (() => Promise<any>) | Promise<any>, breakLoop: (() => Promise<any>) | Promise<any> = async() => false) => {
 	const elem = id instanceof HTMLElement ? id : document.getElementById(id);
 	if (!elem) return elem;
@@ -100,8 +117,17 @@ declare global {
 	}
 }
 class Tile {
-	public constructor(public id: number, public options: TileOptions = {}, public texture = id) {
+	public constructor(public id: number, public options: TileOptions = {}, private _texture?: number) {
 
+	}
+	public get texture() {
+		return this._texture ?? this.id;
+	}
+	public set texture(x) {
+		this._texture = x;
+	}
+	public resetOptions() {
+		this.options = defaults.fg[this.id];
 	}
 }
 type Terrain = [Tile, Tile]
@@ -201,8 +227,6 @@ const tileParser = (arr: TileResolvable[][]): Terrain[][] => // [number: bg, num
 	}))
 ;
 const areaFileParser = (text: string) => text.split("\n").map(x => x.split(/\s+/).map(y => y.split(/:\s+/).map(z => Number.parseInt(z, 16))));
-const genURL = (path: string, id: number, ext?: string) => `url(./img/${path}/${id}${ext ? "." : ""}${ext ?? ""})`;
-const genFullURL = (path: string, id: number) => `${genURL(path, id, "gif")}, ${genURL(path, id, "png")}`;
 const importArea = async(name: string) => {
 	if (areaCache[name]) return areaCache[name];
 	const areaRaw = await import(`./areas/${name}`);
@@ -382,4 +406,23 @@ window.onload = async() => {
 		}
 		setTimeout(() => movable = true, 50);
 	}, true);
+	(async() => {
+		const invisible = document.createElement("DIV");
+		invisible.style.visibility = "none";
+		document.body.append(invisible);
+		try {
+			for (const name of Object.keys(names.fg)) {
+				const e = document.createElement("DIV");
+				e.style.backgroundImage = genFullURL("foreground", name);
+				invisible.append(e);
+			};
+			for (const name of Object.keys(names.bg)) {
+				try {
+					const e = document.createElement("DIV");
+					e.style.backgroundImage = genFullURL("background", name);
+					invisible.append(e);
+				} catch {}
+			};
+		} catch {}
+	})().catch();
 };

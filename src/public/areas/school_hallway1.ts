@@ -2,7 +2,7 @@
 import { speak, player, move } from "../index";
 const r = (): number => Math.round(Math.random()) + 4;
 export const area: TileResolvable[][] = [
-	[r(), r(), [r(), 10] , [r(), 11] , [r(), 8]  , [r(), 8]  , [r(), 8]  , [r(), 8]  , [r(), 8]  , [r(), 9]  ,[r(), 12, { use() { this.value[0].id = 13; } }], r()],
+	[r(), r(), [r(), 10] , [r(), 11] , [r(), 8]  , [r(), 8]  , [r(), 8]  , [r(), 8]  , [r(), 8]  , [r(), 9]  ,[r(), 12], r()],
 	[r(), r(), r(), r(), r(), r(), r(), r(), r(), r(), r(), r()],
 	[r(), r(), r(), r(), r(), r(), r(), r(), r(), r(), r(), r()],
 	[r(), r(), r(), r(), [3, 0, { start: 0 }], r(), r(), r(), r(), r(), r(), r()],

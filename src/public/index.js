@@ -234,11 +234,49 @@ const defaults = {
         ...applyObject({ wall: true, async use() { await speak("A comfy chair."); await speak("Too bad it's digital."); } }, 3, 4, 5, 6),
         ...applyObject({ wall: true, async use() { await speak("A couple of lockers."); await speak("None of them are mine."); } }, 7, 8, 9),
         ...applyObject({ wall: true, async use() { await speak("These lockers fell."); await speak("Hopefully no fragile items are inside."); } }, 10, 11),
+        12: {
+            async use() { await speak("Looks like this locker door is about to break."); sleep(1000); this.value[1].id = 13; await speak("Oops."); this.value[1].resetOptions(); this.value[1].options.use = async function use() { await speak("That was probably vandalism, but I don't care."); }; },
+            wall: true
+        },
+        13: {
+            async use() { await speak("Where did the locker door go?"); },
+            wall: true
+        },
     }
 };
 ;
 
+// CONCATENATED MODULE: ./src/public/modules/names.ts
+const names = {
+    bg: {
+        0: "blank",
+        1: "grass",
+        2: "grass_flowery",
+        3: "bricks",
+        4: "school_plank",
+        5: "school_plank2",
+    },
+    fg: {
+        0: "blank",
+        1: "test_object",
+        2: "table",
+        3: "chair_down",
+        4: "chair_right",
+        5: "chair_left",
+        6: "chair_up",
+        7: "locker_right",
+        8: "locker_double",
+        9: "locker_left",
+        10: "locker_fallA",
+        11: "locker_fallB",
+        12: "locker_hang",
+        13: "locker_missing",
+    }
+};
+
 // CONCATENATED MODULE: ./src/public/index.ts
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "store", function() { return store; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "sleep", function() { return sleep; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "typewrite", function() { return typewrite; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "say", function() { return say; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "speak", function() { return speak; });
@@ -247,8 +285,46 @@ const defaults = {
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "move", function() { return move; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "moveSlow", function() { return moveSlow; });
 
+
+const URLExists = (url) => {
+    try {
+        const request = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP");
+        request.open("GET", url, false);
+        request.send();
+        return request.status !== 404;
+    }
+    catch {
+        return false;
+    }
+};
+const genNoCSSURL = (path, id, ext) => `./img/${path}/${id}${ext ? "." : ""}${(ext !== null && ext !== void 0 ? ext : "")}`;
+const genURL = (path, id, ext) => `url(${genNoCSSURL(path, id, ext)})`;
+const genFullURL = (path, id) => `${genURL(path, id, "gif")}, ${genURL(path, id, "png")}`;
+const preloadURL = (path, id, ext) => new Promise(res => { try {
+    if (!URLExists(genNoCSSURL(path, id, ext)))
+        return;
+    const img = new Image();
+    img.src = genNoCSSURL(path, id, ext);
+    img.onload = res;
+}
+catch { } });
+// eslint-disable-next-line no-sequences
+const preloadFullURL = async (path, id) => { await preloadURL(path, id, "gif"), await preloadURL(path, id, "gif"); };
 const ZERO_WIDTH = "​";
-// #region TEXT
+const trycatch = (func, no, yes) => {
+    try {
+        const y = func();
+        return yes || y;
+    }
+    catch (err) {
+        return no;
+    }
+};
+const store = new Proxy({}, { get(t, x) {
+        return trycatch(() => JSON.parse(localStorage[x]), localStorage[x]);
+    }, set(t, x, y) {
+        return localStorage[x] = trycatch(() => JSON.stringify(y), y);
+    } });
 let convo = false;
 setInterval(() => {
     const speechbox = document.getElementById("speechbox");
@@ -311,11 +387,21 @@ const createElement = (type, func = () => true) => {
     return e;
 };
 const gridSize = 5;
-class Tile {
-    constructor(id, options = {}, texture = id) {
+class public_Tile {
+    constructor(id, options = {}, _texture) {
         this.id = id;
         this.options = options;
-        this.texture = texture;
+        this._texture = _texture;
+    }
+    get texture() {
+        var _a;
+        return _a = this._texture, (_a !== null && _a !== void 0 ? _a : this.id);
+    }
+    set texture(x) {
+        this._texture = x;
+    }
+    resetOptions() {
+        this.options = defaults.fg[this.id];
     }
 }
 class Plane {
@@ -410,11 +496,9 @@ const tileParser = (arr) => // [number: bg, number: fg, opts]
     if (isNumber(y))
         y = [y];
     const [background = 0, foreground = 0, options = {}] = y;
-    return [new Tile(background, defaults.bg[background]), new Tile(foreground, Object.assign({}, defaults.fg[foreground], options))];
+    return [new public_Tile(background, defaults.bg[background]), new public_Tile(foreground, Object.assign({}, defaults.fg[foreground], options))];
 }));
 const areaFileParser = (text) => text.split("\n").map(x => x.split(/\s+/).map(y => y.split(/:\s+/).map(z => Number.parseInt(z, 16))));
-const genURL = (path, id, ext) => `url(./img/${path}/${id}${ext ? "." : ""}${(ext !== null && ext !== void 0 ? ext : "")})`;
-const genFullURL = (path, id) => `${genURL(path, id, "gif")}, ${genURL(path, id, "png")}`;
 const importArea = async (name) => {
     if (areaCache[name])
         return areaCache[name];
@@ -610,6 +694,29 @@ window.onload = async () => {
         }
         setTimeout(() => movable = true, 50);
     }, true);
+    (async () => {
+        const invisible = document.createElement("DIV");
+        invisible.style.visibility = "none";
+        document.body.append(invisible);
+        try {
+            for (const name of Object.keys(names.fg)) {
+                const e = document.createElement("DIV");
+                e.style.backgroundImage = genFullURL("foreground", name);
+                invisible.append(e);
+            }
+            ;
+            for (const name of Object.keys(names.bg)) {
+                try {
+                    const e = document.createElement("DIV");
+                    e.style.backgroundImage = genFullURL("background", name);
+                    invisible.append(e);
+                }
+                catch { }
+            }
+            ;
+        }
+        catch { }
+    })().catch();
 };
 
 

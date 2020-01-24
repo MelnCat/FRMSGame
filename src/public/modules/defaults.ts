@@ -1,4 +1,4 @@
-import { speak, moveSlow } from "../index";
+import { speak, moveSlow, sleep } from "../index";
 export interface Default {
 	[index: number]: TileOptions;
 }
@@ -38,6 +38,14 @@ export const defaults: Defaults = {
 		 7, 8, 9),
 		 ...applyObject({ wall: true, async use() { await speak("These lockers fell."); await speak("Hopefully no fragile items are inside."); } },
 		 10, 11),
+		 12: {
+			 async use() { await speak("Looks like this locker door is about to break."); sleep(1000); this.value[1].id = 13; await speak("Oops."); this.value[1].resetOptions(); this.value[1].options.use = async function use() { await speak("That was probably vandalism, but I don't care."); }; },
+			 wall: true
+		 },
+		 13: {
+			 async use() { await speak("Where did the locker door go?"); },
+			 wall: true
+		 },
 	}
 };
 ;

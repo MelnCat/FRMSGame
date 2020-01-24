@@ -20,5 +20,7 @@ export const names = {
 		9: "locker_left",
 		10: "locker_fallA",
 		11: "locker_fallB",
+		12: "locker_hang",
+		13: "locker_missing",
 	}
 } as const;

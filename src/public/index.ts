@@ -4,7 +4,19 @@ import util from "util";
 import _ from "lodash";
 import { defaults } from "./modules/defaults";
 const ZERO_WIDTH = "​";
-// #region TEXT
+const trycatch = <T>(func: CallableFunction, no: T, yes?: T) => {
+	try {
+		const y = func();
+		return yes || y;
+	} catch (err) {
+		return no;
+	}
+};
+export const store = new Proxy({}, { get(t, x: string | number) {
+	return trycatch(() => JSON.parse(localStorage[x]), localStorage[x]);
+}, set(t, x: string | number, y) {
+	return localStorage[x] = trycatch(() => JSON.stringify(y), y);
+} });
 let convo = false;
 setInterval(() => {
 	const speechbox = document.getElementById("speechbox");

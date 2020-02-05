@@ -22,17 +22,19 @@ exports.defaults = {
                 console.log(this);
             }
         },
-        ...exports.applyObject({ wall: true, async use() { await index_1.speak("A comfy chair."); await index_1.speak("Too bad it's digital."); } }, 3, 4, 5, 6),
-        ...exports.applyObject({ wall: true, async use() { await index_1.speak("A couple of lockers."); await index_1.speak("None of them are mine."); } }, 7, 8, 9),
-        ...exports.applyObject({ wall: true, async use() { await index_1.speak("These lockers fell."); await index_1.speak("Hopefully no fragile items are inside."); } }, 10, 11),
+        ...exports.applyObject({ wall: true, async use() { await index_1.converse("A comfy chair.", "Too bad it's digital."); } }, 3, 4, 5, 6),
+        ...exports.applyObject({ wall: true, async use() { await index_1.converse("A couple of lockers.", "None of them are mine."); } }, 7, 8, 9),
+        ...exports.applyObject({ wall: true, async use() { await index_1.converse("These lockers fell.", "Hopefully no fragile items are inside."); } }, 10, 11),
         12: {
-            async use() { await index_1.speak("Looks like this locker door is about to break."); index_1.sleep(1000); this.value[1].id = 13; await index_1.speak("Oops."); this.value[1].resetOptions(); this.value[1].options.use = async function use() { await index_1.speak("That was probably vandalism, but I don't care."); }; },
+            async use() { await index_1.converse("Looks like this locker door is about to break."); await index_1.sleep(1000); this.value[1].id = 13; await index_1.converse("Oops."); this.value[1].resetOptions(); this.value[1].options.use = async function use() { await index_1.converse("That was probably vandalism, but I don't care."); }; },
             wall: true
         },
         13: {
-            async use() { await index_1.speak("Where did the locker door go?"); },
+            async use() { await index_1.converse("Where did the locker door go?"); },
             wall: true
         },
+        ...exports.applyObject({ wall: true, async use() { await index_1.converse("I can see the second floor.", "Hopefully nobody falls off.\nDying is illegal."); } }, 14, 15, 16, 17),
+        ...exports.applyObject({ wall: true, async use() { await index_1.converse("Some debris.", "Probably fell from the ceiling."); } }, 18, 18.1, 18.2, 18.3),
     }
 };
 ;

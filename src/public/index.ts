@@ -47,15 +47,15 @@ const untilTrue = (func: Function) => new Promise(res => {
 	const inter = setInterval(async() => await func() && (res(true), clearInterval(inter)));
 });
 type dir = "left" | "right" | "up" | "down";
-export const sleep = (milliseconds: number) => () => new Promise(resolve => setTimeout(resolve, milliseconds));
+export const sleep = (milliseconds: number) => new Promise(resolve => setTimeout(resolve, milliseconds));
 export const typewrite = async(id: string | HTMLElement, string: string, persist: (() => Promise<any>) | Promise<any>, breakLoop: (() => Promise<any>) | Promise<any> = async() => false) => {
 	const elem = id instanceof HTMLElement ? id : document.getElementById(id);
 	if (!elem) return elem;
 	convo = true;
 	elem.innerText = ZERO_WIDTH;
 	for (const i of string) {
-		if (!await (breakLoop instanceof Promise ? breakLoop : breakLoop())) await sleep(40)();
-		elem.innerHTML += i;
+		if (!await (breakLoop instanceof Promise ? breakLoop : breakLoop())) await sleep(40);
+		elem.innerHTML += i === "\n" ? "<br />" : i;
 	};
 	await untilTrue(persist instanceof Promise ? () => persist : persist);
 	elem.innerText = ZERO_WIDTH;
@@ -70,7 +70,11 @@ const onKey = (func: (event?: KeyboardEvent, stop?: Function) => any, ...keys: s
 	const l = (event: KeyboardEvent): any => keys.some(x => x === event.code) && func(event, () => window.removeEventListener("keydown", l));
 	window.addEventListener("keydown", l);
 };
-export const say = (elem: HTMLElement | string, text: string) => {
+export const NEWLINE = Symbol("NEWLINE");
+export const say = (elem: HTMLElement | string, text: string | typeof NEWLINE) => {
+	const eleme = typeof elem === "string" ? document.getElementById(elem) : elem;
+	if (text === NEWLINE && eleme) return Promise.resolve(eleme.innerHTML += "<br>");
+	else if (text === NEWLINE) return Promise.resolve();
 	let pressed = 0;
 	onKey((e, stop) => { pressed = Date.now() + 100; stop?.(); }, "Space");
 	const getPressed = async() => pressed;
@@ -82,6 +86,9 @@ export const say = (elem: HTMLElement | string, text: string) => {
 	return new Promise(res => untilTrue(() => pressed2).then(() => setTimeout(res, 100)));
 };
 export const speak = (text: string) => new Promise(res => setTimeout(() => say("box", text).then(res), 100));
+export const converse = async(...texts: string[]) => {
+	for (const text of texts) await speak(text);
+};
 // #endregion
 // #region CLASSES]
 const createElement = <T extends keyof HTMLElementTagNameMap>(type: T, func: (this: HTMLElementTagNameMap[T], elem: HTMLElementTagNameMap[T]) => void | any = () => true): HTMLElementTagNameMap[T] => {
@@ -91,6 +98,7 @@ const createElement = <T extends keyof HTMLElementTagNameMap>(type: T, func: (th
 };
 const gridSize = 5;
 declare global {
+type t = TileResolvable
 	export interface TileOptions {
 		wall?: boolean; // walk through
 		disabled?: boolean; // not 'use'able
@@ -103,7 +111,8 @@ declare global {
 		flip?: false | "Y" | "X";
 		rotate?: number;
 	}
-	export type TileResolvable = number | [number] | [number, number] | [number, number, TileOptions]
+	type numOrFunc = number | (() => number);
+	export type TileResolvable = numOrFunc | [numOrFunc] | [numOrFunc, numOrFunc] | [numOrFunc, numOrFunc, TileOptions]
 	export interface Attack {
 		name: string;
 		damage: number;
@@ -221,7 +230,9 @@ const isString = (val: any): val is string => typeof val === "string";
 const isNumber = (val: any): val is number => typeof val === "number";
 const tileParser = (arr: TileResolvable[][]): Terrain[][] => // [number: bg, number: fg, opts]
 	 arr.map(x => x.map(y => {
-		if (isNumber(y)) y = [y];
+		if (!(y instanceof Array)) y = [y];
+		if (y[0] instanceof Function) y[0] = y[0]();
+		if (y[1] instanceof Function) y[1] = y[1]();
 		const [background = 0, foreground = 0, options = {} as TileOptions] = y;
 		return [new Tile(background, defaults.bg[background]), new Tile(foreground, Object.assign({}, defaults.fg[foreground], options))];
 	}))
@@ -258,8 +269,10 @@ const loadArea = async(): Promise<void | any> => {
 		const plyr = getPlayerElement(e.x, e.y);
 		elem.classList.remove("flipX");
 		elem.classList.remove("flipY");
+		elem.onerror = () => console.log("oh no");
 		fg.classList.remove("flipX");
 		fg.classList.remove("flipY");
+		fg.onerror = () => console.log("oh no");
 		const bgOpts = e.value[0].options;
 		const fgOpts = e.value[1].options;
 		if (!elem || !fg || !plyr) console.error(e.x, e.y);
@@ -353,6 +366,7 @@ window.onload = async() => {
 		const foreground = document.createElement("DIV");
 		foreground.id = `grid-${i}-fg`;
 		foreground.classList.add("fg");
+		foreground.onerror = console.log;
 		elem.append(foreground);
 		const playerelem = document.createElement("DIV");
 		playerelem.id = `grid-${i}-player`;
@@ -414,6 +428,7 @@ window.onload = async() => {
 			for (const name of Object.keys(names.fg)) {
 				const e = document.createElement("DIV");
 				e.style.backgroundImage = genFullURL("foreground", name);
+				e.onerror = console.log;
 				invisible.append(e);
 			};
 			for (const name of Object.keys(names.bg)) {

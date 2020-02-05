@@ -231,17 +231,19 @@ const defaults = {
                 console.log(this);
             }
         },
-        ...applyObject({ wall: true, async use() { await speak("A comfy chair."); await speak("Too bad it's digital."); } }, 3, 4, 5, 6),
-        ...applyObject({ wall: true, async use() { await speak("A couple of lockers."); await speak("None of them are mine."); } }, 7, 8, 9),
-        ...applyObject({ wall: true, async use() { await speak("These lockers fell."); await speak("Hopefully no fragile items are inside."); } }, 10, 11),
+        ...applyObject({ wall: true, async use() { await converse("A comfy chair.", "Too bad it's digital."); } }, 3, 4, 5, 6),
+        ...applyObject({ wall: true, async use() { await converse("A couple of lockers.", "None of them are mine."); } }, 7, 8, 9),
+        ...applyObject({ wall: true, async use() { await converse("These lockers fell.", "Hopefully no fragile items are inside."); } }, 10, 11),
         12: {
-            async use() { await speak("Looks like this locker door is about to break."); sleep(1000); this.value[1].id = 13; await speak("Oops."); this.value[1].resetOptions(); this.value[1].options.use = async function use() { await speak("That was probably vandalism, but I don't care."); }; },
+            async use() { await converse("Looks like this locker door is about to break."); await sleep(1000); this.value[1].id = 13; await converse("Oops."); this.value[1].resetOptions(); this.value[1].options.use = async function use() { await converse("That was probably vandalism, but I don't care."); }; },
             wall: true
         },
         13: {
-            async use() { await speak("Where did the locker door go?"); },
+            async use() { await converse("Where did the locker door go?"); },
             wall: true
         },
+        ...applyObject({ wall: true, async use() { await converse("I can see the second floor.", "Hopefully nobody falls off.\nDying is illegal."); } }, 14, 15, 16, 17),
+        ...applyObject({ wall: true, async use() { await converse("Some debris.", "Probably fell from the ceiling."); } }, 18, 18.1, 18.2, 18.3),
     }
 };
 ;
@@ -255,6 +257,8 @@ const names = {
         3: "bricks",
         4: "school_plank",
         5: "school_plank2",
+        6: "gradient_top",
+        7: "gradient_bottom",
     },
     fg: {
         0: "blank",
@@ -271,6 +275,14 @@ const names = {
         11: "locker_fallB",
         12: "locker_hang",
         13: "locker_missing",
+        14: "floor3_railing_horizontal",
+        15: "floor3_railing_turn_right",
+        16: "floor3_railing_vertical",
+        17: "floor3_railing_turn_left",
+        18: "fallen_debrisA",
+        18.1: "fallen_debrisB",
+        18.2: "fallen_debrisC",
+        18.3: "fallen_debrisD",
     }
 };
 
@@ -278,8 +290,10 @@ const names = {
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "store", function() { return store; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "sleep", function() { return sleep; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "typewrite", function() { return typewrite; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "NEWLINE", function() { return NEWLINE; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "say", function() { return say; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "speak", function() { return speak; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "converse", function() { return converse; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "player", function() { return player; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "setArea", function() { return setArea; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "move", function() { return move; });
@@ -341,7 +355,7 @@ setInterval(() => {
 const untilTrue = (func) => new Promise(res => {
     const inter = setInterval(async () => await func() && (res(true), clearInterval(inter)));
 });
-const sleep = (milliseconds) => () => new Promise(resolve => setTimeout(resolve, milliseconds));
+const sleep = (milliseconds) => new Promise(resolve => setTimeout(resolve, milliseconds));
 const typewrite = async (id, string, persist, breakLoop = async () => false) => {
     const elem = id instanceof HTMLElement ? id : document.getElementById(id);
     if (!elem)
@@ -350,8 +364,8 @@ const typewrite = async (id, string, persist, breakLoop = async () => false) => 
     elem.innerText = ZERO_WIDTH;
     for (const i of string) {
         if (!await (breakLoop instanceof Promise ? breakLoop : breakLoop()))
-            await sleep(40)();
-        elem.innerHTML += i;
+            await sleep(40);
+        elem.innerHTML += i === "\n" ? "<br />" : i;
     }
     ;
     await untilTrue(persist instanceof Promise ? () => persist : persist);
@@ -367,7 +381,13 @@ const onKey = (func, ...keys) => {
     const l = (event) => keys.some(x => x === event.code) && func(event, () => window.removeEventListener("keydown", l));
     window.addEventListener("keydown", l);
 };
+const NEWLINE = Symbol("NEWLINE");
 const say = (elem, text) => {
+    const eleme = typeof elem === "string" ? document.getElementById(elem) : elem;
+    if (text === NEWLINE && eleme)
+        return Promise.resolve(eleme.innerHTML += "<br>");
+    else if (text === NEWLINE)
+        return Promise.resolve();
     let pressed = 0;
     onKey((e, stop) => { var _a; pressed = Date.now() + 100; (_a = stop) === null || _a === void 0 ? void 0 : _a(); }, "Space");
     const getPressed = async () => pressed;
@@ -379,6 +399,10 @@ const say = (elem, text) => {
     return new Promise(res => untilTrue(() => pressed2).then(() => setTimeout(res, 100)));
 };
 const speak = (text) => new Promise(res => setTimeout(() => say("box", text).then(res), 100));
+const converse = async (...texts) => {
+    for (const text of texts)
+        await speak(text);
+};
 // #endregion
 // #region CLASSES]
 const createElement = (type, func = () => true) => {
@@ -493,8 +517,12 @@ const isString = (val) => typeof val === "string";
 const isNumber = (val) => typeof val === "number";
 const tileParser = (arr) => // [number: bg, number: fg, opts]
  arr.map(x => x.map(y => {
-    if (isNumber(y))
+    if (!(y instanceof Array))
         y = [y];
+    if (y[0] instanceof Function)
+        y[0] = y[0]();
+    if (y[1] instanceof Function)
+        y[1] = y[1]();
     const [background = 0, foreground = 0, options = {}] = y;
     return [new public_Tile(background, defaults.bg[background]), new public_Tile(foreground, Object.assign({}, defaults.fg[foreground], options))];
 }));
@@ -531,8 +559,10 @@ const loadArea = async () => {
         const plyr = getPlayerElement(e.x, e.y);
         elem.classList.remove("flipX");
         elem.classList.remove("flipY");
+        elem.onerror = () => console.log("oh no");
         fg.classList.remove("flipX");
         fg.classList.remove("flipY");
+        fg.onerror = () => console.log("oh no");
         const bgOpts = e.value[0].options;
         const fgOpts = e.value[1].options;
         if (!elem || !fg || !plyr)
@@ -638,6 +668,7 @@ window.onload = async () => {
         const foreground = document.createElement("DIV");
         foreground.id = `grid-${i}-fg`;
         foreground.classList.add("fg");
+        foreground.onerror = console.log;
         elem.append(foreground);
         const playerelem = document.createElement("DIV");
         playerelem.id = `grid-${i}-player`;
@@ -702,6 +733,7 @@ window.onload = async () => {
             for (const name of Object.keys(names.fg)) {
                 const e = document.createElement("DIV");
                 e.style.backgroundImage = genFullURL("foreground", name);
+                e.onerror = console.log;
                 invisible.append(e);
             }
             ;

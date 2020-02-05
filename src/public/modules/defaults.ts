@@ -1,4 +1,4 @@
-import { speak, moveSlow, sleep } from "../index";
+import { speak, moveSlow, sleep, converse, NEWLINE } from "../index";
 export interface Default {
 	[index: number]: TileOptions;
 }
@@ -33,19 +33,23 @@ export const defaults: Defaults = {
 				console.log(this);
 			}
 		},
-		...applyObject({ wall: true, async use() { await speak("A comfy chair."); await speak("Too bad it's digital."); } }, 3, 4, 5, 6),
-		...applyObject({ wall: true, async use() { await speak("A couple of lockers."); await speak("None of them are mine."); } },
+		...applyObject({ wall: true, async use() { await converse("A comfy chair.", "Too bad it's digital."); } }, 3, 4, 5, 6),
+		...applyObject({ wall: true, async use() { await converse("A couple of lockers.", "None of them are mine."); } },
 		 7, 8, 9),
-		 ...applyObject({ wall: true, async use() { await speak("These lockers fell."); await speak("Hopefully no fragile items are inside."); } },
+		 ...applyObject({ wall: true, async use() { await converse("These lockers fell.", "Hopefully no fragile items are inside."); } },
 		 10, 11),
 		 12: {
-			 async use() { await speak("Looks like this locker door is about to break."); sleep(1000); this.value[1].id = 13; await speak("Oops."); this.value[1].resetOptions(); this.value[1].options.use = async function use() { await speak("That was probably vandalism, but I don't care."); }; },
+			 async use() { await converse("Looks like this locker door is about to break."); await sleep(1000); this.value[1].id = 13; await converse("Oops."); this.value[1].resetOptions(); this.value[1].options.use = async function use() { await converse("That was probably vandalism, but I don't care."); }; },
 			 wall: true
 		 },
 		 13: {
-			 async use() { await speak("Where did the locker door go?"); },
+			 async use() { await converse("Where did the locker door go?"); },
 			 wall: true
 		 },
+		 ...applyObject({ wall: true, async use() { await converse("I can see the second floor.", "Hopefully nobody falls off.\nDying is illegal."); } },
+		 14, 15, 16, 17),
+		 ...applyObject({ wall: true, async use() { await converse("Some debris.", "Probably fell from the ceiling."); } },
+		 18, 18.1, 18.2, 18.3),
 	}
 };
 ;

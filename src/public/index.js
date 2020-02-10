@@ -698,6 +698,7 @@ window.onload = async () => {
     const inventory = document.getElementById("inv");
     for (let i = 0; i < 5; i++) {
         const e = document.createElement("p");
+        e.classList.add("grid-item");
         e.style.backgroundColor = "red";
         inventory.append(e);
     }

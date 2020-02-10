@@ -8,17 +8,22 @@
 
 .container {
   margin: 0 auto;
-  /*
   display: grid;
-  grid-gap: none;
-  grid-template-columns: repeat($grid-size, auto);
-  grid-template-rows: repeat($grid-size, auto);
+  grid-template-columns: repeat(5, auto);
+  grid-template-rows: repeat(5, auto);
   grid-auto-flow: row;
-  */
-  display: flex;
   position: relative;
   width: 420px;
-  flex-flow: row wrap;
+}
+
+#inv {
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(5, auto);
+  grid-template-rows: repeat(5, auto);
+  grid-auto-flow: row;
+  position: relative;
+  width: 420px;
 }
 
 .flipX {

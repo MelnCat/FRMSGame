@@ -279,13 +279,12 @@ export const loadArea = async(): Promise<void | any> => {
 		if (!elem || !fg || !plyr) console.error(e.x, e.y);
 		if (bgOpts.flip) elem.classList.add(`flip${bgOpts.flip}`);
 		elem!.style.backgroundImage = genFullURL("background", e.value[0].texture);
-		if (constants.debug) elem.title = names.bg[e.value[0].id as keyof typeof names.bg];
 		if (fgOpts.flip) fg.classList.add(`flip${fgOpts.flip}`);
 		// // fg.classList.add(`fg.${e.value[1].texture}`);
 		fg!.style.backgroundImage = genFullURL("foreground", e.value[1].texture);
-		if (constants.debug) fg.title = names.fg[e.value[1].id as keyof typeof names.fg];
 		if (e.x === (Math.round(gridSize / 2) - 1) && e.y === (Math.round(gridSize / 2) - 1)) plyr.style.backgroundImage = genFullURL("player", player.texId);
 		else plyr.style.backgroundImage = "";
+		if (constants.debug) elem.title = `BG: ${e.value[0].id} ${names.bg[e.value[0].id as keyof typeof names.bg]}\nFG: ${e.value[1].id} ${names.fg[e.value[1].id as keyof typeof names.fg]}`;
 	}
 };
 export const setArea = async(area: string, id = 0) => {
@@ -386,6 +385,13 @@ window.onload = async() => {
 	const areaDiv = document.createElement("div");
 	areaDiv.id = "areaDiv";
 	ctn.append(areaDiv);
+	const inventory = document.getElementById("inv")!;
+	for (let i = 0; i < 5; i++) {
+		const e = document.createElement("p");
+		e.classList.add("invitem");
+		e.style.backgroundColor = "red";
+		inventory.append(e);
+	}
 	// > Tile init
 	setArea("school_hallway1");
 	await startArea();

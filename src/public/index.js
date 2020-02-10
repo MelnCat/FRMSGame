@@ -259,6 +259,7 @@ const names = {
         5: "school_plank2",
         6: "gradient_top",
         7: "gradient_bottom",
+        8: "school_wall_up",
     },
     fg: {
         0: "blank",
@@ -286,6 +287,11 @@ const names = {
     }
 };
 
+// CONCATENATED MODULE: ./src/public/modules/constants.ts
+/* harmony default export */ var constants = ({
+    debug: true
+});
+
 // CONCATENATED MODULE: ./src/public/index.ts
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "store", function() { return store; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "sleep", function() { return sleep; });
@@ -299,6 +305,7 @@ const names = {
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "setArea", function() { return setArea; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "move", function() { return move; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "moveSlow", function() { return moveSlow; });
+
 
 
 const URLExists = (url) => {
@@ -579,6 +586,8 @@ const loadArea = async () => {
             plyr.style.backgroundImage = genFullURL("player", player.texId);
         else
             plyr.style.backgroundImage = "";
+        if (constants.debug)
+            elem.title = `BG: ${e.value[0].id} ${names.bg[e.value[0].id]}\nFG: ${e.value[1].id} ${names.fg[e.value[1].id]}`;
     }
 };
 const setArea = async (area, id = 0) => {
@@ -686,6 +695,12 @@ window.onload = async () => {
     const areaDiv = document.createElement("div");
     areaDiv.id = "areaDiv";
     ctn.append(areaDiv);
+    const inventory = document.getElementById("inv");
+    for (let i = 0; i < 5; i++) {
+        const e = document.createElement("p");
+        e.style.backgroundColor = "red";
+        inventory.append(e);
+    }
     // > Tile init
     setArea("school_hallway1");
     await startArea();

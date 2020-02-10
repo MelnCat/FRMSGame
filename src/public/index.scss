@@ -11,19 +11,30 @@ $cell-size: 84px;
 
 .container {
 	margin: 0 auto;
-	/*
+
 	display: grid;
-	grid-gap: none;
 	grid-template-columns: repeat($grid-size, auto);
 	grid-template-rows: repeat($grid-size, auto);
 	grid-auto-flow: row;
-	*/
 
-	display: flex;
+
 	position: relative;
 	// flex-wrap: wrap;
 	width: $grid-size * $cell-size;
-	flex-flow: row wrap;
+}
+
+#inv {
+	margin: 0 auto;
+
+	display: grid;
+	grid-template-columns: repeat($grid-size, auto);
+	grid-template-rows: repeat($grid-size, auto);
+	grid-auto-flow: row;
+
+
+	position: relative;
+	// flex-wrap: wrap;
+	width: $grid-size * $cell-size;
 }
 
 .flipX {
@@ -61,6 +72,7 @@ img {
 	// border: 1px solid #fff;
 	position: relative;
 }
+
 
 .player {
 	z-index: 10;

@@ -4,6 +4,7 @@ import util from "util";
 import _ from "lodash";
 import { defaults } from "./modules/defaults";
 import { names } from "./modules/names";
+import constants from "./modules/constants";
 const URLExists = (url: string) => {
 	try {
 		const request = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP");
@@ -261,7 +262,7 @@ const getDirect = async() => {
 	const plane = await importArea(player.area);
 	return plane.getSurrounding(player.x, player.y);
 };
-const loadArea = async(): Promise<void | any> => {
+export const loadArea = async(): Promise<void | any> => {
 	const [surrounding, area] = await getSurrounding();
 	for (const e of surrounding) {
 		const elem = getGridElement(e.x, e.y);
@@ -278,9 +279,11 @@ const loadArea = async(): Promise<void | any> => {
 		if (!elem || !fg || !plyr) console.error(e.x, e.y);
 		if (bgOpts.flip) elem.classList.add(`flip${bgOpts.flip}`);
 		elem!.style.backgroundImage = genFullURL("background", e.value[0].texture);
+		if (constants.debug) elem.title = names.bg[e.value[0].id as keyof typeof names.bg];
 		if (fgOpts.flip) fg.classList.add(`flip${fgOpts.flip}`);
 		// // fg.classList.add(`fg.${e.value[1].texture}`);
 		fg!.style.backgroundImage = genFullURL("foreground", e.value[1].texture);
+		if (constants.debug) fg.title = names.fg[e.value[1].id as keyof typeof names.fg];
 		if (e.x === (Math.round(gridSize / 2) - 1) && e.y === (Math.round(gridSize / 2) - 1)) plyr.style.backgroundImage = genFullURL("player", player.texId);
 		else plyr.style.backgroundImage = "";
 	}

@@ -295,6 +295,7 @@ const names = {
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "speak", function() { return speak; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "converse", function() { return converse; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "player", function() { return player; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "loadArea", function() { return loadArea; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "setArea", function() { return setArea; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "move", function() { return move; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "moveSlow", function() { return moveSlow; });

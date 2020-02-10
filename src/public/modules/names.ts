@@ -8,6 +8,7 @@ export const names = {
 		5: "school_plank2",
 		6: "gradient_top",
 		7: "gradient_bottom",
+		8: "school_wall_up",
 	},
 	fg: {
 		0: "blank",

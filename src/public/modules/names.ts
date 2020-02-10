@@ -33,5 +33,9 @@ export const names = {
 		18.1: "fallen_debrisB",
 		18.2: "fallen_debrisC",
 		18.3: "fallen_debrisD",
+	},
+	items: { // [internal, display]
+		0: ["blank", ""],
+		1: ["test_item", "James Ree"],
 	}
 } as const;

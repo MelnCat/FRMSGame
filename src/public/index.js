@@ -697,9 +697,11 @@ window.onload = async () => {
     ctn.append(areaDiv);
     const inventory = document.getElementById("inv");
     for (let i = 0; i < 5; i++) {
-        const e = document.createElement("p");
-        e.classList.add("grid-item");
-        e.style.backgroundColor = "red";
+        const e = document.createElement("div");
+        e.classList.add("inv-item");
+        const f = document.createElement("div");
+        f.style.backgroundImage = genFullURL("items", 1);
+        e.append(f);
         inventory.append(e);
     }
     // > Tile init
